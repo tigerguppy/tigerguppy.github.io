@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Endpoint Forge v6.8</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#21253a;--border:#2a2d3a;--border2:#3a3f52;
+  --accent:#6366f1;--accent2:#4f46e5;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+  --nav-w:200px;--hdr-h:52px;
+}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+a{color:var(--accent);text-decoration:none}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:6px 10px;font-size:13px;width:100%;font-family:inherit;outline:none}
+.toolbar select[multiple]{height:34px;min-width:150px;max-width:190px;overflow:auto;padding:4px 8px}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
+button{cursor:pointer;font-size:13px;font-family:inherit;border-radius:5px;padding:6px 14px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:background .15s,border-color .15s}
+button:hover{background:var(--border);border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent2)}
+button.danger{background:transparent;border-color:var(--red);color:var(--red)}
+button.danger:hover{background:#7f1d1d30}
+button.success{background:transparent;border-color:var(--green);color:var(--green)}
+button.small{padding:3px 10px;font-size:12px}
+.sort-btns, .drag-handle{user-select:none;-webkit-user-select:none}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+/* Layout */
+#hdr{height:var(--hdr-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0;z-index:100}
+#hdr h1{font-size:16px;font-weight:600;color:var(--text);letter-spacing:-.3px}
+#hdr .ctx{display:flex;align-items:center;gap:10px;margin-left:auto}
+#hdr .ctx select{width:auto;min-width:120px;padding:4px 8px;font-size:12px}
+#hdr .ctx label{font-size:11px;margin:0;white-space:nowrap}
+#body{display:flex;flex:1;overflow:hidden}
+#nav{width:var(--nav-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+#nav .nav-item{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;border-left:3px solid transparent;transition:all .15s}
+#nav .nav-item:hover{color:var(--text);background:var(--surface2)}
+#nav .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--surface2)}
+#nav .nav-item svg{width:16px;height:16px;flex-shrink:0}
+#content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.active{display:flex}
+.page-scroll{flex:1;overflow-y:auto;padding:20px}
+
+/* Panels & Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center}
+.stat.clickable{cursor:pointer;transition:background .15s,border-color .15s,transform .05s}
+.stat.clickable:hover{background:var(--border);border-color:var(--accent)}
+.stat.clickable:active{transform:translateY(1px)}
+.stat .num{font-size:26px;font-weight:700;font-family:monospace}
+.stat .lbl{font-size:11px;color:var(--text2);margin-top:2px}
+.status-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.status-row:last-child{border-bottom:none}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot.green{background:var(--green)}.dot.amber{background:var(--amber)}.dot.red{background:var(--red)}.dot.gray{background:var(--text3)}
+
+/* Toolbar */
+.toolbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.toolbar input{max-width:220px}
+.toolbar select{width:auto;min-width:145px;max-width:190px}
+.toolbar .status-filter{width:auto;min-width:125px}
+
+
+.context-info{padding:4px 9px;border-radius:999px}
+.version-btn{font-size:10px;color:var(--text3);background:transparent;border:0;padding:0;text-align:left;cursor:pointer}
+.version-btn:hover{color:var(--accent)}
+.save-dot.file{background:var(--green)}.save-dot.cache{background:var(--amber)}.save-dot.demo{background:var(--text3)}
+.ef-filter{position:relative;min-width:160px;max-width:220px}
+.ef-filter-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;font-size:13px;color:var(--text);white-space:nowrap}
+.ef-filter-menu{position:fixed;z-index:150;background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:0 6px 22px #000a;width:230px;max-height:280px;display:none;overflow:hidden}
+.ef-filter-menu.open{display:flex;flex-direction:column}
+.ef-filter-menu .filter-actions{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--border)}
+.ef-filter-menu .filter-options{overflow:auto;padding:6px}
+.ef-filter-option{display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:5px;cursor:pointer;font-size:12px}
+.ef-filter-option:hover{background:var(--surface2)}
+.ef-filter-option input{width:auto;accent-color:var(--accent)}
+.health-link{cursor:pointer}
+.health-link:hover{background:var(--surface2)}
+.drag-handle{user-select:none;cursor:grab}
+.secret-value-row{display:flex;gap:8px;width:100%;align-items:center}
+.secret-value-row input{flex:1}
+.inline-check{display:flex;align-items:center;gap:6px;color:var(--text2);font-size:12px;white-space:nowrap}
+.inline-check input{width:auto}
+.sort-btns{display:flex;gap:4px;align-items:center}
+.sort-btns button{padding:3px 8px;font-size:12px}
+.disabled-row{opacity:.55}
+.health-link .fix-detail{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+table th{text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+table td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+table tr:hover td{background:var(--surface2)}
+.tag{display:inline-block;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:1px 7px;font-size:11px;color:var(--text2);margin:1px}
+.badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:500}
+.badge.green{background:#14532d40;color:var(--green);border:1px solid #16a34a40}
+.badge.red{background:#7f1d1d40;color:var(--red);border:1px solid #dc262640}
+.badge.amber{background:#78350f40;color:var(--amber);border:1px solid #d9770640}
+.badge.blue{background:#1e3a5f40;color:var(--blue);border:1px solid #3b82f640}
+.badge.gray{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+
+/* Editor */
+#item-editor{display:none;flex:1;overflow:hidden;flex-direction:column}
+#item-editor.active{display:flex}
+.editor-hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.editor-body{flex:1;overflow-y:auto;padding:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.form-grid.single{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.multi-select{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:4px 6px;min-height:42px;display:flex;flex-wrap:wrap;gap:4px;cursor:text;align-items:center}
+.multi-select .ms-tag{background:var(--accent);color:#fff;border-radius:4px;padding:2px 8px;font-size:12px;display:flex;align-items:center;gap:4px}
+.multi-select .ms-tag span{cursor:pointer;opacity:.7}
+.multi-select .ms-tag span:hover{opacity:1}
+.ms-input{background:transparent;border:none;outline:none;font-size:12px;color:var(--text);min-width:80px;flex:1}
+.ms-dropdown{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:6px;z-index:50;max-height:160px;overflow-y:auto;width:220px;box-shadow:0 4px 20px #000a}
+.ms-dropdown div{padding:7px 12px;font-size:13px;cursor:pointer}
+.ms-dropdown div:hover{background:var(--surface2)}
+.os-section{border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px}
+.os-section h4{font-size:12px;color:var(--text2);margin-bottom:8px}
+.checklist-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.checklist-item:last-child{border-bottom:none}
+.checklist-item input[type=checkbox]{width:auto;accent-color:var(--accent)}
+.checklist-item .ci-label{flex:1;font-size:13px}
+.checklist-item .ci-done{color:var(--text3);text-decoration:line-through}
+.nested{padding-left:20px;border-left:2px solid var(--border);margin-left:8px}
+
+/* Outputs */
+.output-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;height:100%}
+.output-list{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.output-list h3{padding:12px 16px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.output-file{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s}
+.output-file:hover{background:var(--surface2)}
+.output-file.selected{background:var(--surface2);border-left:3px solid var(--accent)}
+.output-file input[type=checkbox]{width:auto;accent-color:var(--accent);flex-shrink:0}
+.output-file .fname{font-family:monospace;font-size:12px;flex:1}
+.preview-pane{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.preview-pane h3{padding:12px 16px;font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.preview-content{flex:1;overflow-y:auto;padding:12px 16px;font-family:monospace;font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-all}
+
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:200px 1fr;gap:0;height:100%;overflow:hidden}
+.settings-nav{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto}
+.settings-nav .sn-item{padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text2);border-left:3px solid transparent}
+.settings-nav .sn-item:hover{color:var(--text);background:var(--surface2)}
+.settings-nav .sn-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--surface2)}
+.settings-content{overflow-y:auto;padding:20px}
+.list-editor{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.list-editor .le-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.list-editor .le-row:last-child{border-bottom:none}
+.list-editor .le-row:hover{background:var(--surface2)}
+.list-editor .le-row input{flex:1}
+.drag-handle{cursor:grab;color:var(--text3);font-size:16px}
+.cl-drag{cursor:grab;color:var(--text3);user-select:none;-webkit-user-select:none;width:20px;text-align:center;flex-shrink:0}
+.cl-num{font-family:monospace;color:var(--text2);min-width:44px;font-size:12px;flex-shrink:0}
+th.sortable{cursor:pointer}
+th.sortable:hover{color:var(--accent)}
+th.sort-asc::after{content:" ▲";color:var(--accent)}
+th.sort-desc::after{content:" ▼";color:var(--accent)}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-hdr h2{font-size:14px;font-weight:600}
+
+/* Checklist page */
+.cl-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px}
+.cl-card-hdr{padding:12px 16px;background:var(--surface2);display:flex;align-items:center;gap:8px;cursor:pointer}
+.cl-card-hdr h3{flex:1;font-size:13px;font-weight:600}
+.cl-progress{font-size:11px;color:var(--text2)}
+.cl-body{padding:12px 16px}
+.cl-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.cl-item-actions{display:flex;gap:4px;flex-shrink:0}.cl-item-actions button{padding:2px 7px;font-size:11px}.cl-children{margin-left:22px;border-left:2px solid var(--border);padding-left:12px}
+.cl-item:last-child{border-bottom:none}
+.cl-item input[type=checkbox]{width:auto;accent-color:var(--accent);margin-top:2px;flex-shrink:0}
+.cl-item-text{flex:1}
+.cl-item-title{font-size:13px}
+.cl-item-done .cl-item-title{color:var(--text3);text-decoration:line-through}
+.cl-item-desc{font-size:11px;color:var(--text2);margin-top:2px}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+
+/* Log */
+.log-line{font-family:monospace;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:10px}
+.log-line .log-time{color:var(--text3);white-space:nowrap}
+.log-line .log-lvl{width:50px;text-align:center}
+.log-line .log-msg{flex:1;word-break:break-all}
+.log-line.error .log-lvl{color:var(--red)}
+.log-line.warn .log-lvl{color:var(--amber)}
+.log-line.info .log-lvl{color:var(--blue)}
+.log-line.ok .log-lvl{color:var(--green)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:#000a;z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:20px;min-width:360px;max-width:560px;width:90%}
+.modal h2{font-size:15px;font-weight:600;margin-bottom:14px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.hidden{display:none!important}
+
+/* Autosave indicator */
+.save-indicator{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;margin-left:auto}
+.save-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.save-dot.dirty{background:var(--amber)}
+.save-dot.file{background:var(--green)}
+.save-dot.cache{background:var(--blue)}
+.save-dot.demo{background:var(--amber)}
+
+/* Monospace code block */
+.code-block{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:12px;color:var(--text2);line-height:1.6;white-space:pre;overflow-x:auto}
+
+/* v6.4 workflow, profile, filter, validation, and recovery improvements */
+.items-toolbar select{max-width:160px}
+.items-toolbar input{max-width:240px}
+.file-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.file-actions button{padding:3px 8px;font-size:11px}
+.status-row.file-row{gap:10px}
+.status-row.file-row .file-main{display:flex;align-items:center;gap:4px;min-width:260px}
+.status-row.file-row .file-status{margin-left:auto;margin-right:8px}
+.checklist-toolbar{justify-content:flex-start}
+.classification-compact .multi-select{min-height:36px;max-height:78px;overflow:auto}
+.classification-compact{gap:10px}
+.cl-tree-row{user-select:none}
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<div id="hdr">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h.01M11 8h6M7 12h.01M11 12h6"/></svg>
+  <h1>Endpoint Forge</h1>
+  <div class="ctx">
+    <label>Client</label>
+    <select id="ctx-client" onchange="onClientChange()"></select>
+    <label>Profile</label>
+    <select id="ctx-profile" onchange="onProfileChange()"></select>
+    <label>Mode</label>
+    <select id="ctx-mode" onchange="onModeChange()">
+      <option value="build">New Build</option><option value="rebuild">Rebuild</option><option value="configure">Configure</option><option value="repair">Repair</option><option value="audit">Audit</option><option value="offboard">Offboard</option><option value="rollback">Rollback</option>
+    </select>
+    <label>Endpoint</label>
+    <input id="ctx-endpoint" style="width:140px" placeholder="hostname" oninput="onEndpointChange()">
+    <label>Date</label>
+    <input id="ctx-date" type="date" style="width:130px">
+  </div>
+  <button class="context-info" title="What influences this page" onclick="showPageContext()">ⓘ</button>
+  <div class="save-indicator"><div class="save-dot" id="save-dot"></div><span id="save-label">Saved</span></div>
+</div>
+
+<!-- BODY -->
+<div id="body">
+<!-- NAV -->
+<div id="nav">
+  <div class="nav-item active" onclick="nav('dashboard')" data-page="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Dashboard
+  </div>
+  <div class="nav-item" onclick="nav('items')" data-page="items">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg> Items
+  </div>
+  <div class="nav-item" onclick="nav('checklists')" data-page="checklists">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Checklists
+  </div>
+  <div class="nav-item" onclick="nav('outputs')" data-page="outputs">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Generated Outputs
+  </div>
+  <div class="nav-item" onclick="nav('settings')" data-page="settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings
+  </div>
+  <div style="margin-top:auto;padding:10px 16px;font-size:10px;color:var(--text3);border-top:1px solid var(--border)"><button class="version-btn" onclick="showChangeLog()">v6.6 · Portable Endpoint Forge</button></div>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-scroll">
+    <div class="stat-row" id="dash-stats"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <h3>File Status</h3>
+        <div id="dash-files"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="exportAll()">📦 Export Output ZIP</button>
+          <button onclick="exportSanitized()">🧼 Sanitized Catalog Export</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Recent Log</h3>
+        <div id="dash-log" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Build Context</h3>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+        <div><label>Client</label><div style="font-weight:600" id="ctx-disp-client">—</div></div>
+        <div><label>Profile</label><div style="font-weight:600" id="ctx-disp-profile">—</div></div>
+        <div><label>Mode</label><div style="font-weight:600" id="ctx-disp-mode">—</div></div>
+        <div><label>Endpoint</label><div style="font-weight:600;font-family:monospace" id="ctx-disp-endpoint">—</div></div>
+        <div><label>Build Date</label><div style="font-weight:600" id="ctx-disp-date">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Project Health / Validation</h3>
+      <div id="dash-health"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ITEMS PAGE -->
+<div class="page" id="page-items">
+  <div class="toolbar items-toolbar">
+    <button class="primary" onclick="newItem()">+ Add Item</button>
+    <input id="item-search" placeholder="Search items…" oninput="renderItemTable()">
+    <div id="item-filter-cat" class="ef-filter" data-filter="cat"></div>
+    <div id="item-filter-phase" class="ef-filter" data-filter="phase"></div>
+    <div id="item-filter-tag" class="ef-filter" data-filter="tag"></div>
+    <div id="item-filter-os" class="ef-filter" data-filter="os"></div>
+    <select id="item-filter-enabled" class="status-filter" onchange="renderItemTable()">
+      <option value="all">All Statuses</option>
+      <option value="enabled">Enabled Only</option>
+      <option value="disabled">Disabled Only</option>
+    </select>
+    <button onclick="clearItemFilters()">Clear Filters</button>
+    <div style="margin-left:auto;font-size:12px;color:var(--text2)" id="item-count"></div>
+  </div>
+  <div style="flex:1;overflow:hidden;display:flex">
+    <div style="flex:1;overflow:auto" id="item-table-wrap">
+      <table id="item-table">
+        <thead><tr>
+          <th style="width:100px">Actions</th><th class="sortable" data-sort="name" onclick="sortItemsBy('name')">Name</th><th class="sortable" data-sort="kind" onclick="sortItemsBy('kind')">Kind</th><th class="sortable" data-sort="category" onclick="sortItemsBy('category')">Categories</th><th class="sortable" data-sort="phase" onclick="sortItemsBy('phase')">Phase</th><th class="sortable" data-sort="os" onclick="sortItemsBy('os')">OS</th><th class="sortable" data-sort="status" onclick="sortItemsBy('status')">Status</th>
+        </tr></thead>
+        <tbody id="item-tbody"></tbody>
+      </table>
+    </div>
+    <!-- ITEM EDITOR (inline) -->
+    <div id="item-editor">
+      <div class="editor-hdr">
+        <select id="editor-item-sel" onchange="editorSelectItem()"></select>
+        <button onclick="newItem()">+ Add</button>
+        <button onclick="cloneItem()">Clone</button>
+        <button class="danger small" onclick="deleteItem()">Delete</button>
+        <button class="success small" onclick="saveItem()">Save</button>
+        <button onclick="closeEditor()" style="margin-left:auto">✕ Close</button>
+      </div>
+      <div class="editor-body" id="editor-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECKLISTS PAGE -->
+<div class="page" id="page-checklists">
+  <div class="toolbar checklist-toolbar">
+    <select id="cl-selector" onchange="onChecklistSelect()"></select>
+    <button onclick="renameChecklist()">Rename</button>
+    <button onclick="toggleChecklistEnabled()">Enable/Disable</button>
+    <button onclick="addChecklist()">+ New Checklist</button>
+    <button onclick="addAutoChecklist()">+ Auto Checklist</button>
+    <button onclick="cloneChecklist()">Clone</button>
+    <button class="danger small" onclick="deleteChecklist()">Delete</button>
+    <span style="margin-left:auto;font-size:12px;color:var(--text2)" id="cl-progress-label"></span>
+  </div>
+  <div class="page-scroll" id="cl-content"></div>
+</div>
+
+<!-- GENERATED OUTPUTS -->
+<div class="page" id="page-outputs">
+  <div class="toolbar">
+    <button onclick="selectAllOutputs(true)">Select All</button>
+    <button onclick="selectAllOutputs(false)">Select None</button>
+    <button class="primary" onclick="downloadZip()">📦 Download ZIP</button>
+    <span style="font-size:12px;color:var(--text2);margin-left:auto" id="output-sel-count"></span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+      <div class="output-list" id="out-scripts">
+        <h3>
+          <input type="checkbox" style="width:auto;accent-color:var(--accent)" onchange="toggleOutputCat('script',this.checked)"> Scripts
+        </h3>
+        <div id="out-scripts-list"></div>
+      </div>
+      <div class="output-list" id="out-checklists">
+        <h3>
+          <input type="checkbox" style="width:auto;accent-color:var(--accent)" onchange="toggleOutputCat('checklist',this.checked)"> Checklists
+        </h3>
+        <div id="out-checklists-list"></div>
+      </div>
+      <div class="output-list" id="out-state">
+        <h3>
+          <input type="checkbox" style="width:auto;accent-color:var(--accent)" onchange="toggleOutputCat('state',this.checked)"> State Files
+        </h3>
+        <div id="out-state-list"></div>
+      </div>
+      <div class="output-list" id="out-logs">
+        <h3>
+          <input type="checkbox" style="width:auto;accent-color:var(--accent)" onchange="toggleOutputCat('log',this.checked)"> Logs
+        </h3>
+        <div id="out-logs-list"></div>
+      </div>
+    </div>
+    <div class="preview-pane">
+      <h3 id="preview-title">Preview</h3>
+      <div class="preview-content" id="preview-content">Select a file to preview its contents.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+  <div class="settings-grid">
+    <div class="settings-nav" id="settings-nav">
+      <div class="sn-item active" onclick="settingsTab('clients')" data-tab="clients">Clients</div>
+      <div class="sn-item" onclick="settingsTab('profiles')" data-tab="profiles">Profiles</div>
+      <div class="sn-item" onclick="settingsTab('categories')" data-tab="categories">Categories</div>
+      <div class="sn-item" onclick="settingsTab('tags')" data-tab="tags">Tags</div>
+      <div class="sn-item" onclick="settingsTab('types')" data-tab="types">Types</div>
+      <div class="sn-item" onclick="settingsTab('phases')" data-tab="phases">Phases</div>
+      <div class="sn-item" onclick="settingsTab('operating-systems')" data-tab="operating-systems">Operating Systems</div>
+      <div class="sn-item" onclick="settingsTab('secrets')" data-tab="secrets">Secrets</div>
+    </div>
+    <div class="settings-content" id="settings-content"></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /body -->
+
+<!-- MODAL -->
+<div id="modal-bg" class="modal-bg hidden">
+  <div class="modal" id="modal-box">
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <div class="modal-footer">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="primary" id="modal-ok" onclick="modalOk()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+Endpoint Forge v6.0
+Portable, local-first endpoint artifact repository and runbook/script generator.
+Code organization uses section headers to keep the single-file app maintainable while avoiding external dependencies.
+*/
+// ===== DEFAULT DATA =====
+const DEFAULT_DATA = {
+  clients:[
+    {id:'c1',name:'Acme Corp'},
+    {id:'c2',name:'Globex Industries'}
+  ],
+  profiles:[
+    {id:'p1',clientId:'c1',name:'Standard Workstation',includeCategories:['Security','Utilities'],excludeCategories:[],includeTags:[],excludeTags:[],includeTypes:[],excludeTypes:[],includePhases:['Install'],excludePhases:[],includeOS:['win11'],excludeOS:[]},
+    {id:'p2',clientId:'c1',name:'Server Build',includeCategories:['Security','Server'],excludeCategories:[],includeTags:[],excludeTags:[],includeTypes:[],excludeTypes:[],includePhases:['Install','Configure'],excludePhases:[],includeOS:['debian'],excludeOS:[]}
+  ],
+  categories:['Security','Utilities','Networking','Server','Development','Productivity','Monitoring'],
+  tags:['Required','Optional','Enterprise','SMB','Legacy'],
+  types:['Application','Scriptlet','Registry Edit','Config File Edit','Browser Policy','Verification Check','Repair Fix','Security Baseline','Manual Procedure','Service','Driver','Feature'],
+  phases:['Pre-Install','Install','Configure','Post-Install','Verify'],
+  operatingSystems:[
+    {id:'win11',name:'Windows 11',scriptFile:'install-windows.ps1',scriptType:'powershell'},
+    {id:'macos',name:'macOS',scriptFile:'install-macos.sh',scriptType:'bash'},
+    {id:'debian',name:'Debian Linux',scriptFile:'install-linux-debian.sh',scriptType:'bash'},
+    {id:'arch',name:'Arch Linux',scriptFile:'install-linux-arch.sh',scriptType:'bash'},
+    {id:'rhel',name:'Red Hat Linux',scriptFile:'install-linux-rhel.sh',scriptType:'bash'}
+  ],
+  checklists:[
+    {id:'cl1',clientId:'c1',name:'Manual Install',items:[
+      {id:'i1',title:'Verify system requirements',description:'Check RAM, disk, CPU meets minimums',done:false},
+      {id:'i2',title:'Create local admin account',description:'Use company naming convention',done:false},
+      {id:'i3',title:'Join domain',description:'Requires domain admin credentials',done:false},
+      {id:'i4',title:'Configure power settings',description:'Set sleep/hibernate per policy',done:false}
+    ]},
+    {id:'cl2',clientId:'c1',name:'Offboarding',items:[
+      {id:'i5',title:'Backup user data',description:'Copy Documents, Desktop, Downloads to NAS',done:false},
+      {id:'i6',title:'Remove from domain',description:'Delete computer object from AD',done:false},
+      {id:'i7',title:'Wipe disk',description:'Run DBAN or Windows Reset',done:false}
+    ]},
+    {id:'cl3',clientId:'c2',name:'Globex Onboarding',items:[
+      {id:'i8',title:'Install Huntress agent',description:'Use Globex account key',done:false},
+      {id:'i9',title:'Configure Splashtop',description:'Add to Globex deployment group',done:false}
+    ]}
+  ],
+  items:[
+    {id:'it1',itemKind:'Security Agent',name:'Huntress EDR',description:'Endpoint detection and response agent',notes:'Requires account key from secrets',categories:['Security'],tags:['Required'],types:['Service'],phases:['Install'],os:{win11:{command:'iex ((New-Object System.Net.WebClient).DownloadString(\'https://huntress.io/download/win\')) -AccountKey $HUNTRESS_ACCOUNT_KEY',manualInstall:false},debian:{command:'curl -s https://huntress.io/download/linux | bash -s -- --account-key $HUNTRESS_ACCOUNT_KEY',manualInstall:false}},url:'https://huntress.io',dependencies:[],requiresReboot:false,testing:false,enabled:true,optional:false,manualSteps:'Verify agent appears in Huntress console within 5 minutes.',offboardingSteps:'Uninstall via Huntress console first, then remove locally.',secrets:['HUNTRESS_ACCOUNT_KEY']},
+    {id:'it2',itemKind:'Remote Access Agent',name:'Splashtop Streamer',description:'Remote access client',notes:'',categories:['Utilities'],tags:['Required'],types:['Application'],phases:['Install'],os:{win11:{command:'msiexec /i splashtop.msi /quiet DEPLOYMENT_CODE=$SPLASHTOP_DEPLOYMENT_CODE',manualInstall:false},macos:{command:'sudo installer -pkg splashtop.pkg -target / && sudo st_deploy $SPLASHTOP_DEPLOYMENT_CODE',manualInstall:false}},url:'https://www.splashtop.com',dependencies:[],requiresReboot:false,testing:false,enabled:true,optional:false,manualSteps:'',offboardingSteps:'Remove from Splashtop portal.',secrets:['SPLASHTOP_DEPLOYMENT_CODE']},
+    {id:'it3',itemKind:'Monitoring Agent',name:'Netdata Monitoring',description:'Real-time system monitoring',notes:'',categories:['Monitoring'],tags:['Optional'],types:['Service'],phases:['Install','Configure'],os:{debian:{command:'bash <(curl -Ss https://my-netdata.io/kickstart.sh) --claim-token $NETDATA_CLAIM_TOKEN',manualInstall:false},rhel:{command:'bash <(curl -Ss https://my-netdata.io/kickstart.sh) --claim-token $NETDATA_CLAIM_TOKEN',manualInstall:false}},url:'https://netdata.cloud',dependencies:[],requiresReboot:false,testing:false,enabled:true,optional:true,manualSteps:'',offboardingSteps:'Remove node from Netdata Cloud dashboard.',secrets:['NETDATA_CLAIM_TOKEN']},
+    {id:'it4',itemKind:'Application',name:'Microsoft 365 Apps',description:'Office productivity suite',notes:'',categories:['Productivity'],tags:['Enterprise'],types:['Application'],phases:['Install'],os:{win11:{command:'winget install Microsoft.Office --silent',manualInstall:false},macos:{command:'brew install --cask microsoft-office',manualInstall:false}},url:'https://microsoft.com/m365',dependencies:[],requiresReboot:true,testing:false,enabled:true,optional:false,manualSteps:'Activate with company license key after install.',offboardingSteps:'Remove license from M365 admin portal.',secrets:[]},
+    {id:'it5',itemKind:'Evaluation',name:'Malwarebytes',description:'Anti-malware scanner',notes:'Testing evaluation in progress',categories:['Security'],tags:['Optional'],types:['Application'],phases:['Install'],os:{win11:{command:'msiexec /i MBSetup.msi /quiet',manualInstall:false}},url:'https://malwarebytes.com',dependencies:[],requiresReboot:false,testing:true,enabled:true,optional:true,manualSteps:'',offboardingSteps:'',secrets:[]},
+    {id:'it6',itemKind:'Registry Edit',name:'Disable Browser Background Apps',description:'Example scriptlet / tweak item used to document and apply a local browser policy.',notes:'Demonstrates Endpoint Forge as a scriptlet repository, not only an app installer.',categories:['Utilities'],tags:['Optional'],types:['Scriptlet'],phases:['Configure'],os:{win11:{command:String.raw`reg add HKCU\Software\Policies\Chromium /v BackgroundModeEnabled /t REG_DWORD /d 0 /f`,manualInstall:false},debian:{command:String.raw`sudo mkdir -p /etc/chromium/policies/managed && echo '{"BackgroundModeEnabled":false}' | sudo tee /etc/chromium/policies/managed/endpoint-forge-baseline.json`,manualInstall:false},macos:{command:String.raw`defaults write com.google.Chrome BackgroundModeEnabled -bool false`,manualInstall:false}},url:'',dependencies:[],requiresReboot:false,testing:false,enabled:true,optional:true,manualSteps:'Verify the browser policy page shows the expected setting.',offboardingSteps:'Remove the local policy/registry value if this baseline no longer applies.',secrets:[]}
+  ],
+  secrets:[
+    {id:'s1',clientId:'c1',key:'HUNTRESS_ACCOUNT_KEY',value:'',description:'Huntress EDR account key for Acme Corp'},
+    {id:'s2',clientId:'c1',key:'SPLASHTOP_DEPLOYMENT_CODE',value:'',description:'Splashtop deployment code'},
+    {id:'s3',clientId:'c2',key:'HUNTRESS_ACCOUNT_KEY',value:'',description:'Huntress EDR account key for Globex'},
+    {id:'s4',clientId:'c2',key:'NETDATA_CLAIM_TOKEN',value:'',description:'Netdata cloud claim token'}
+  ],
+  buildStates:{}
+};
+
+// ===== STATE =====
+let catalog = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let ctx = {clientId:'c1',profileId:'p1',endpoint:'WORKSTATION-01',date:new Date().toISOString().split('T')[0],mode:'build'};
+let logs = [];
+let dirty = false;
+let editingItemId = null;
+let currentPage = 'dashboard';
+let suppressHistoryPush = false;
+let settingsSection = 'clients';
+let outputSelections = {};
+let selectedOutputFile = null;
+let itemSortState = {key:'name',dir:'asc'};
+let checklistDragState = null;
+let selectedChecklistId = null;
+let storageSource = {catalog:'demo', secrets:'demo', state:'demo'};
+let itemFilterState = {cat:[],phase:[],tag:[],os:[]};
+
+
+function normalizeCatalogForV65(){
+  catalog.clients = (catalog.clients||[]).map(c=>({...c, enabled:c.enabled!==false}));
+  catalog.profiles = (catalog.profiles||[]).map(p=>({...p, enabled:p.enabled!==false, excludeItemIds:p.excludeItemIds||[], selectedItemIds:p.selectedItemIds||[]}));
+  catalog.checklists = (catalog.checklists||[]).map(c=>({...c, enabled:c.enabled!==false, items:c.items||[]}));
+  catalog.secrets = (catalog.secrets||[]).map(s=>({...s, enabled:s.enabled!==false, value:s.value||''}));
+  catalog.operatingSystems = (catalog.operatingSystems||[]).map(o=>({...o, enabled:o.enabled!==false}));
+  catalog.categories = catalog.categories || [];
+  catalog.tags = catalog.tags || [];
+  catalog.types = catalog.types || [];
+  catalog.phases = catalog.phases || [];
+  catalog.items = catalog.items || [];
+}
+function alphaByName(a,b){ return String(a.name||a.key||a).localeCompare(String(b.name||b.key||b), undefined, {sensitivity:'base'}); }
+function activeClients(){ return (catalog.clients||[]).filter(c=>c.enabled!==false).sort(alphaByName); }
+function activeProfilesForClient(clientId){ return (catalog.profiles||[]).filter(p=>p.clientId===clientId && p.enabled!==false).sort(alphaByName); }
+function sortedSecretsForClient(clientId){ return (catalog.secrets||[]).filter(s=>s.clientId===clientId).sort((a,b)=>String(a.key||'').localeCompare(String(b.key||''),undefined,{sensitivity:'base'})); }
+function sortedChecklistsForClient(clientId){ return (catalog.checklists||[]).filter(c=>c.clientId===clientId).sort(alphaByName); }
+
+// ===== INIT =====
+function init(){
+  // Try localStorage
+  const saved = localStorage.getItem('endpoint-forge');
+  if(saved){try{catalog=JSON.parse(saved);storageSource.catalog='recovery cache';storageSource.secrets='recovery cache';storageSource.state='recovery cache';}catch(e){}}
+  const savedCtx = localStorage.getItem('endpoint-forge-ctx');
+  if(savedCtx){try{ctx=JSON.parse(savedCtx);}catch(e){}}
+  const savedLogs = localStorage.getItem('endpoint-forge-logs');
+  if(savedLogs){try{logs=JSON.parse(savedLogs);}catch(e){logs=[];}}
+  
+  normalizeCatalogForV65();
+  const d=document.getElementById('ctx-date');
+  d.value=ctx.date||new Date().toISOString().split('T')[0];
+  d.addEventListener('change',()=>{ctx.date=d.value;updateCtxDisplay();});
+  document.getElementById('ctx-endpoint').value=ctx.endpoint||'';
+  const modeSel=document.getElementById('ctx-mode'); if(modeSel){modeSel.value=ctx.mode||'build';}
+  
+  populateCtxDropdowns();
+  renderDashboard();
+  renderItemFilters();
+  renderItemTable();
+  renderOutputs();
+  renderSettingsContent();
+  updateCtxDisplay();
+  addLog('info','Endpoint Forge loaded');
+  updateSaveIndicator();
+  history.replaceState({page:currentPage, settings:settingsSection}, '', '#'+currentPage);
+  window.addEventListener('popstate', ev=>{
+    const st=ev.state||{};
+    suppressHistoryPush=true;
+    nav(st.page||'dashboard');
+    if(st.settings){settingsTab(st.settings, true);}
+    suppressHistoryPush=false;
+  });
+  
+  setInterval(()=>{if(dirty)autosave();},2000);
+}
+
+function dataCommitState(){
+  const fileBacked = ['imported','exported/saved'].includes(storageSource.catalog) || ['imported','exported/saved'].includes(storageSource.secrets) || ['imported','exported/saved'].includes(storageSource.state);
+  if(dirty) return 'Unsaved - memory only';
+  if(fileBacked) return 'Saved - JSON committed';
+  if(storageSource.catalog==='recovery cache') return 'Saved - browser recovery cache';
+  return 'Saved - demo/in-memory data';
+}
+function updateSaveIndicator(){
+  const dot=document.getElementById('save-dot'), label=document.getElementById('save-label');
+  if(!dot||!label)return;
+  dot.className='save-dot';
+  if(dirty) dot.classList.add('dirty');
+  else if(['imported','exported/saved'].includes(storageSource.catalog) || ['imported','exported/saved'].includes(storageSource.secrets) || ['imported','exported/saved'].includes(storageSource.state)) dot.classList.add('file');
+  else if(storageSource.catalog==='recovery cache') dot.classList.add('cache');
+  else dot.classList.add('demo');
+  label.textContent=dataCommitState();
+}
+function autosave(){
+  localStorage.setItem('endpoint-forge',JSON.stringify(catalog));
+  localStorage.setItem('endpoint-forge-ctx',JSON.stringify(ctx));
+  localStorage.setItem('endpoint-forge-logs',JSON.stringify(logs));
+  dirty=false;
+  updateSaveIndicator();
+}
+
+function markDirty(){
+  dirty=true;
+  updateSaveIndicator();
+}
+
+// ===== NAVIGATION =====
+function nav(page){
+  parentToggleUndo=null;
+  currentPage=page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+  document.querySelectorAll('.page').forEach(el=>el.classList.toggle('active',el.id==='page-'+page));
+  if(!suppressHistoryPush){history.pushState({page, settings:settingsSection}, '', '#'+page);}
+  if(page==='dashboard')renderDashboard();
+  if(page==='items'){closeEditor();renderItemFilters();renderItemTable();}
+  if(page==='checklists')renderChecklists();
+  if(page==='outputs')renderOutputs();
+  if(page==='settings')renderSettingsContent();
+}
+function refreshCurrentViews(){
+  populateCtxDropdowns();
+  updateCtxDisplay();
+  renderDashboard();
+  renderItemFilters();
+  renderItemTable();
+  renderOutputs();
+  renderHealth();
+  if(currentPage==='checklists')renderChecklists();
+  if(currentPage==='settings')renderSettingsContent();
+}
+
+// ===== CONTEXT =====
+function populateCtxDropdowns(){
+  const cs=document.getElementById('ctx-client');
+  const clients=activeClients();
+  if(!clients.find(c=>c.id===ctx.clientId)) ctx.clientId=clients[0]?.id || catalog.clients[0]?.id || '';
+  cs.innerHTML=clients.map(c=>`<option value="${c.id}" ${c.id===ctx.clientId?'selected':''}>${esc(c.name)}</option>`).join('');
+  populateProfileDropdown();
+}
+
+function populateProfileDropdown(){
+  const ps=document.getElementById('ctx-profile');
+  const profs=activeProfilesForClient(ctx.clientId);
+  if(!profs.find(p=>p.id===ctx.profileId)) ctx.profileId=profs[0]?.id||'';
+  ps.innerHTML=profs.map(p=>`<option value="${p.id}" ${p.id===ctx.profileId?'selected':''}>${esc(p.name)}</option>`).join('');
+}
+
+function onClientChange(){
+  ctx.clientId=document.getElementById('ctx-client').value;
+  populateProfileDropdown();
+  refreshCurrentViews();
+  markDirty();
+  addLog('info',`Client changed to ${currentClientName()}`);
+}
+
+function onProfileChange(){
+  ctx.profileId=document.getElementById('ctx-profile').value;
+  refreshCurrentViews();
+  markDirty();
+}
+
+function onEndpointChange(){
+  ctx.endpoint=document.getElementById('ctx-endpoint').value;
+  refreshCurrentViews();
+  markDirty();
+}
+
+function onModeChange(){
+  ctx.mode=document.getElementById('ctx-mode').value;
+  refreshCurrentViews();
+  markDirty();
+}
+
+function updateCtxDisplay(){
+  document.getElementById('ctx-disp-client').textContent=currentClientName()||'—';
+  document.getElementById('ctx-disp-profile').textContent=currentProfileName()||'—';
+  const modeEl=document.getElementById('ctx-disp-mode'); if(modeEl) modeEl.textContent=(ctx.mode||'build').replace(/^./,m=>m.toUpperCase());
+  document.getElementById('ctx-disp-endpoint').textContent=ctx.endpoint||'—';
+  document.getElementById('ctx-disp-date').textContent=ctx.date||'—';
+}
+
+function currentClientName(){return catalog.clients.find(c=>c.id===ctx.clientId)?.name||'';}
+function currentProfileName(){return catalog.profiles.find(p=>p.id===ctx.profileId)?.name||'';}
+
+// ===== LOGGING =====
+function addLog(level,msg){
+  logs.push({time:new Date().toISOString(),level,msg,client:currentClientName(),endpoint:ctx.endpoint});
+  if(logs.length>200)logs.shift();
+  renderDashLog();
+  renderHealth();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard(){
+  const items=catalog.items;
+  const enabled=items.filter(i=>i.enabled);
+  const checklists=catalog.checklists.filter(c=>c.clientId===ctx.clientId);
+  const secrets=catalog.secrets.filter(s=>s.clientId===ctx.clientId);
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat clickable" onclick="nav('items')" title="Open Items"><div class="num" style="color:var(--accent)">${items.length}</div><div class="lbl">Total Items</div></div>
+    <div class="stat clickable" onclick="nav('items');document.getElementById('item-filter-enabled').value='enabled';renderItemTable();" title="Open enabled items"><div class="num" style="color:var(--green)">${enabled.length}</div><div class="lbl">Enabled</div></div>
+    <div class="stat clickable" onclick="nav('checklists')" title="Open Checklists"><div class="num" style="color:var(--blue)">${checklists.length}</div><div class="lbl">Checklists</div></div>
+    <div class="stat clickable" onclick="nav('settings');settingsTab('secrets')" title="Open Secrets"><div class="num" style="color:var(--amber)">${secrets.length}</div><div class="lbl">Secrets</div></div>
+    <div class="stat clickable" onclick="nav('settings');settingsTab('clients')" title="Open Clients"><div class="num" style="color:var(--text2)">${catalog.clients.length}</div><div class="lbl">Clients</div></div>
+    <div class="stat clickable" onclick="nav('settings');settingsTab('profiles')" title="Open Profiles"><div class="num" style="color:var(--text2)">${activeProfilesForClient(ctx.clientId).length}</div><div class="lbl">Profiles</div></div>
+  `;
+  const catalogReal=storageSource.catalog==='imported' || storageSource.catalog==='exported/saved';
+  const secretsReal=storageSource.secrets==='imported' || storageSource.secrets==='exported/saved';
+  const stateReal=storageSource.state==='imported' || storageSource.state==='exported/saved';
+  document.getElementById('dash-files').innerHTML=`
+    <div class="status-row file-row"><span class="file-main"><span class="dot ${catalogReal?'green':'amber'}"></span>endpoint-forge-catalog.json</span><span class="badge file-status ${catalogReal?'green':'amber'}">${catalogReal?'Loaded from file':storageSource.catalog==='recovery cache'?'Recovery cache':'Demo data only'}</span><span class="file-actions"><button onclick="importCatalog()">Import</button><button onclick="exportCatalog()">Export</button></span></div>
+    <div class="status-row file-row"><span class="file-main"><span class="dot ${secretsReal?'green':'amber'}"></span>endpoint-forge-secrets.json</span><span class="badge file-status ${secretsReal?'green':'amber'}">${secretsReal?'Loaded/exported':storageSource.secrets==='recovery cache'?'Recovery cache':secrets.length?'Demo secrets only':'Not created'}</span><span class="file-actions"><button onclick="importSecrets()">Import</button><button onclick="exportSecrets()">Export</button></span></div>
+    <div class="status-row file-row"><span class="file-main"><span class="dot ${stateReal?'green':'amber'}"></span>${ctx.endpoint?ctx.endpoint+'-build-state.json':'(no endpoint set)'}</span><span class="badge file-status ${stateReal?'green':'amber'}">${stateReal?'Loaded/exported':ctx.endpoint?'In-memory state':'Endpoint Missing'}</span><span class="file-actions"><button onclick="importState()">Import</button><button onclick="exportState()">Export</button></span></div>
+    <div class="status-row file-row"><span class="file-main"><span class="dot ${logs.length?'green':'gray'}"></span>endpoint-forge-log.json / build.log</span><span class="badge file-status ${logs.length?'green':'gray'}">${logs.length} entries</span><span class="file-actions"><button onclick="importLogs()">Import</button><button onclick="exportLogs()">Export</button></span></div>
+    <div class="status-row file-row"><span class="file-main"><span class="dot red"></span>Browser recovery/local cache</span><span class="badge file-status amber">Use only after JSON save</span><span class="file-actions"><button class="danger" onclick="clearLocalCache()">Clear Cache</button></span></div>
+  `;
+  renderDashLog();
+  renderHealth();
+}
+
+function renderDashLog(){
+  const el=document.getElementById('dash-log');
+  if(!el)return;
+  const recent=logs.slice(-20).reverse();
+  el.innerHTML=recent.length?recent.map(l=>`
+    <div class="log-line ${l.level}">
+      <span class="log-time">${l.time.split('T')[1].split('.')[0]}</span>
+      <span class="log-lvl">${l.level.toUpperCase()}</span>
+      <span class="log-msg">${l.msg}</span>
+    </div>`).join(''):'<div style="color:var(--text3);font-size:12px;padding:8px">No log entries</div>';
+}
+
+
+function renderHealth(){
+  const el=document.getElementById('dash-health'); if(!el)return;
+  const warnings=[];
+  const osIds=new Set(catalog.operatingSystems.map(o=>o.id));
+  const secretKeys=new Set(catalog.secrets.filter(s=>s.clientId===ctx.clientId).map(s=>s.key));
+  const usedSecrets=new Set();
+  catalog.items.forEach(i=>{
+    Object.keys(i.os||{}).forEach(os=>{if(!osIds.has(os))warnings.push({msg:`Item "${i.name}" references missing OS: ${os}`,kind:'missing-os',id:i.id,aux:os,detail:'Remove the stale OS command mapping from this item.'});});
+    (i.secrets||[]).forEach(k=>{usedSecrets.add(k); if(!secretKeys.has(k))warnings.push({msg:`Item "${i.name}" references missing client secret: ${k}`,kind:'missing-secret',id:k,detail:`Create secret ${k} for ${currentClientName()}.`});});
+    const hasCommand=Object.values(i.os||{}).some(v=>v.command||v.manualInstall);
+    if(i.enabled&&!hasCommand)warnings.push({msg:`Enabled item "${i.name}" has no command and is not marked manual.`,kind:'item',id:i.id,detail:'Open item and add a command or mark as manual install.'});
+    if((i.offboardingRequired||i.offboardingSteps)&&!String(i.offboardingSteps||'').trim())warnings.push({msg:`Item "${i.name}" is offboarding-related but has no offboarding steps.`,kind:'item',id:i.id,detail:'Open item and add offboarding steps.'});
+  });
+  catalog.secrets.filter(s=>s.clientId===ctx.clientId).forEach(s=>{if(!usedSecrets.has(s.key))warnings.push({msg:`Client secret "${s.key}" is not referenced by any item.`,kind:'secrets',detail:'Open Secrets to review or remove unused secret.'});});
+  const ids=catalog.items.map(i=>i.id); ids.filter((id,idx)=>ids.indexOf(id)!==idx).forEach(id=>warnings.push({msg:`Duplicate item ID: ${id}`,kind:'items',detail:'Open Items and resolve duplicate ID.'}));
+  el.innerHTML=warnings.length?warnings.map((w,idx)=>`<div class="status-row health-link" onclick="goToFix('${w.kind}','${esc(w.id||'')}','${esc(w.aux||'')}')"><span><span class="dot amber"></span>${esc(w.msg)}<div class="fix-detail">${esc(w.detail||'Click to fix.')}</div></span><span class="badge amber">Fix</span></div>`).join(''):`<div class="status-row"><span><span class="dot green"></span>No validation warnings detected.</span><span class="badge green">Healthy</span></div>`;
+}
+function goToFix(kind,id,aux){
+  if(kind==='item'&&id){nav('items');editItem(id);return;}
+  if(kind==='missing-os'&&id&&aux){
+    const item=catalog.items.find(i=>i.id===id);
+    if(item&&item.os&&Object.prototype.hasOwnProperty.call(item.os,aux)){
+      if(confirm(`Remove stale OS mapping '${aux}' from '${item.name}'?`)){
+        delete item.os[aux]; markDirty(); renderHealth(); renderItemTable(); renderOutputs(); addLog('info',`Removed stale OS mapping ${aux} from ${item.name}`);
+      }
+    }
+    return;
+  }
+  if(kind==='missing-secret'){
+    const exists=(catalog.secrets||[]).some(s=>s.clientId===ctx.clientId && s.key===id);
+    if(!exists){
+      catalog.secrets.push({id:'s'+Date.now(),clientId:ctx.clientId,key:id,value:'',description:`Created from Project Health validation for ${currentClientName()}`,enabled:true});
+      markDirty(); addLog('info',`Created missing secret placeholder: ${id}`);
+    }
+    nav('settings');settingsTab('secrets');return;
+  }
+  if(kind==='secrets'){nav('settings');settingsTab('secrets');return;}
+  if(kind==='items'){nav('items');return;}
+  nav('settings');
+}
+
+// ===== ITEMS =====
+// ===== ITEMS =====
+// ===== ITEMS =====
+function selectedValues(id){
+  const map={'item-filter-cat':'cat','item-filter-phase':'phase','item-filter-tag':'tag','item-filter-os':'os'};
+  if(map[id]) return itemFilterState[map[id]] || [];
+  return Array.from(document.getElementById(id)?.selectedOptions||[]).map(o=>o.value).filter(Boolean);
+}
+function setMultiOptions(el,values,labels,current){
+  const selected=new Set(current||[]);
+  el.innerHTML=values.map((v,i)=>`<option value="${esc(v)}" ${selected.has(v)?'selected':''}>${esc(labels?labels[i]:v)}</option>`).join('');
+}
+function renderFilterDropdown(containerId,label,values,labels,selected){
+  const el=document.getElementById(containerId); if(!el) return;
+  const count=(selected||[]).length;
+  const caption=count?`${label}: ${count}`:`All ${label}`;
+  const safeId=containerId+'-menu';
+  el.innerHTML=`<button class="ef-filter-btn" onclick="toggleFilterMenu('${containerId}')"><span>${esc(caption)}</span><span>▾</span></button>
+    <div class="ef-filter-menu" id="${safeId}">
+      <div class="filter-actions"><button class="small" onclick="setFilterAll('${containerId}',true)">All</button><button class="small" onclick="setFilterAll('${containerId}',false)">None</button></div>
+      <div class="filter-options">${values.map((v,i)=>`<label class="ef-filter-option"><input type="checkbox" value="${esc(v)}" ${(selected||[]).includes(v)?'checked':''} onchange="filterBoxChanged('${containerId}')"><span>${esc(labels?labels[i]:v)}</span></label>`).join('')}</div>
+    </div>`;
+}
+function toggleFilterMenu(containerId){
+  const menu=document.getElementById(containerId+'-menu'); if(!menu) return;
+  document.querySelectorAll('.ef-filter-menu.open').forEach(m=>{if(m!==menu)m.classList.remove('open')});
+  const rect=document.getElementById(containerId).getBoundingClientRect();
+  menu.style.left=rect.left+'px'; menu.style.top=(rect.bottom+3)+'px';
+  menu.classList.toggle('open');
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.ef-filter')) document.querySelectorAll('.ef-filter-menu.open').forEach(m=>m.classList.remove('open')); });
+function filterBoxChanged(containerId){
+  const map={'item-filter-cat':'cat','item-filter-phase':'phase','item-filter-tag':'tag','item-filter-os':'os'};
+  itemFilterState[map[containerId]]=Array.from(document.querySelectorAll(`#${containerId}-menu input:checked`)).map(i=>i.value);
+  renderItemFilters(); renderItemTable();
+}
+function setFilterAll(containerId,all){
+  const map={'item-filter-cat':'cat','item-filter-phase':'phase','item-filter-tag':'tag','item-filter-os':'os'};
+  const values=Array.from(document.querySelectorAll(`#${containerId}-menu input`)).map(i=>i.value);
+  itemFilterState[map[containerId]]=all?values:[];
+  renderItemFilters(); renderItemTable();
+}
+function renderItemFilters(){
+  renderFilterDropdown('item-filter-cat','Categories',catalog.categories,null,itemFilterState.cat);
+  renderFilterDropdown('item-filter-phase','Phases',catalog.phases,null,itemFilterState.phase);
+  renderFilterDropdown('item-filter-tag','Tags',catalog.tags,null,itemFilterState.tag);
+  renderFilterDropdown('item-filter-os','OS',activeOperatingSystems().map(o=>o.id),activeOperatingSystems().map(o=>o.name),itemFilterState.os);
+}
+function clearItemFilters(){
+  document.getElementById('item-search').value='';
+  itemFilterState={cat:[],phase:[],tag:[],os:[]};
+  document.getElementById('item-filter-enabled').value='all';
+  renderItemFilters(); renderItemTable();
+  addLog('info','Cleared item filters');
+}
+
+function anyOverlap(a,b){return (a||[]).some(x=>(b||[]).includes(x));}
+function activeOperatingSystems(){ return (catalog.operatingSystems||[]).filter(o=>o.enabled!==false); }
+function getFilteredItems(){
+  const q=(document.getElementById('item-search').value||'').toLowerCase();
+  const cats=selectedValues('item-filter-cat');
+  const phases=selectedValues('item-filter-phase');
+  const tags=selectedValues('item-filter-tag');
+  const oses=selectedValues('item-filter-os');
+  const enabledFilter=document.getElementById('item-filter-enabled').value;
+  return catalog.items.filter(i=>{
+    if(enabledFilter==='enabled'&&!i.enabled)return false;
+    if(enabledFilter==='disabled'&&i.enabled)return false;
+    if(q&&!String(i.name||'').toLowerCase().includes(q)&&!String(i.description||'').toLowerCase().includes(q)&&!String(i.notes||'').toLowerCase().includes(q))return false;
+    if(cats.length&&!anyOverlap(i.categories,cats))return false;
+    if(phases.length&&!anyOverlap(i.phases,phases))return false;
+    if(tags.length&&!anyOverlap(i.tags,tags))return false;
+    if(oses.length&&!oses.some(os=>i.os&&i.os[os]))return false;
+    return true;
+  });
+}
+
+function sortItemsBy(key){
+  if(itemSortState.key===key){itemSortState.dir=itemSortState.dir==='asc'?'desc':'asc';}
+  else{itemSortState={key,dir:'asc'};}
+  renderItemTable();
+}
+function itemSortValue(i,key,osMap){
+  if(key==='name') return i.name||'';
+  if(key==='kind') return i.itemKind||i.types?.[0]||'';
+  if(key==='category') return (i.categories||[]).join(', ');
+  if(key==='phase') return (i.phases||[]).join(', ');
+  if(key==='os') return Object.keys(i.os||{}).map(k=>osMap[k]||k).join(', ');
+  if(key==='status') return `${i.enabled!==false?'enabled':'disabled'} ${i.testing?'testing':''} ${i.optional?'optional':''}`;
+  return i.name||'';
+}
+function renderItemTable(){
+  let items=getFilteredItems().slice();
+  const osMap={};
+  catalog.operatingSystems.forEach(o=>osMap[o.id]=o.name);
+  items.sort((a,b)=>String(itemSortValue(a,itemSortState.key,osMap)).localeCompare(String(itemSortValue(b,itemSortState.key,osMap)),undefined,{sensitivity:'base'}));
+  if(itemSortState.dir==='desc') items.reverse();
+  document.getElementById('item-count').textContent=`${items.length} items`;
+  document.querySelectorAll('#item-table th.sortable').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.sort===itemSortState.key) th.classList.add(itemSortState.dir==='asc'?'sort-asc':'sort-desc');
+  });
+  document.getElementById('item-tbody').innerHTML=items.map(i=>`
+    <tr>
+      <td><button class="small" onclick="editItem('${i.id}')">Edit</button></td>
+      <td>
+        <div style="font-weight:500">${esc(i.name)}</div>
+        <div style="font-size:11px;color:var(--text2)">${esc(i.description)}</div>
+      </td>
+      <td>${esc(i.itemKind||i.types?.[0]||'Artifact')}</td>
+      <td>${(i.categories||[]).map(c=>`<span class="tag">${esc(c)}</span>`).join('')}</td>
+      <td>${(i.phases||[]).map(p=>`<span class="tag">${esc(p)}</span>`).join('')}</td>
+      <td>${Object.keys(i.os||{}).map(k=>`<span class="tag">${esc(osMap[k]||k)}</span>`).join('')}</td>
+      <td>
+        ${i.enabled!==false?'<span class="badge green">Enabled</span>':'<span class="badge red">Disabled</span>'}
+        ${i.testing?'<span class="badge amber">Testing</span>':''}
+        ${i.optional?'<span class="badge gray">Optional</span>':''}
+        ${i.requiresReboot?'<span class="badge blue">Reboot</span>':''}
+      </td>
+    </tr>`).join('');
+}
+
+
+function editItem(id){
+  editingItemId=id;
+  document.getElementById('item-table-wrap').style.display='none';
+  document.getElementById('item-editor').classList.add('active');
+  populateEditorSelector();
+  renderEditor();
+}
+
+function closeEditor(){
+  editingItemId=null;
+  document.getElementById('item-table-wrap').style.display='';
+  document.getElementById('item-editor').classList.remove('active');
+}
+
+function newItem(){
+  const id='it'+Date.now();
+  catalog.items.push({id,itemKind:'Artifact',name:'New Artifact',description:'',notes:'',categories:[],tags:[],types:[],phases:[],os:{},url:'',dependencies:[],requiresReboot:false,testing:false,enabled:true,optional:false,manualSteps:'',offboardingSteps:'',secrets:[],risk:'Low',reversible:false});
+  markDirty();
+  editItem(id);
+}
+
+function cloneItem(){
+  if(!editingItemId)return;
+  const src=catalog.items.find(i=>i.id===editingItemId);
+  if(!src)return;
+  const clone=JSON.parse(JSON.stringify(src));
+  clone.id='it'+Date.now();
+  clone.name=src.name+' (Copy)';
+  catalog.items.push(clone);
+  markDirty();
+  editItem(clone.id);
+  addLog('info',`Cloned item: ${src.name}`);
+}
+
+function deleteItem(){
+  if(!editingItemId)return;
+  const item=catalog.items.find(i=>i.id===editingItemId);
+  if(!item||!confirm(`Delete "${item.name}"?`))return;
+  catalog.items=catalog.items.filter(i=>i.id!==editingItemId);
+  markDirty();
+  closeEditor();
+  renderItemTable();
+  addLog('info',`Deleted item: ${item.name}`);
+}
+
+function saveItem(){
+  if(!editingItemId)return;
+  collectEditorForm();
+  markDirty();
+  renderItemTable();
+  addLog('ok',`Saved item: ${catalog.items.find(i=>i.id===editingItemId)?.name}`);
+}
+
+function editorSelectItem(){
+  const sel=document.getElementById('editor-item-sel').value;
+  if(sel){
+    collectEditorForm();
+    editingItemId=sel;
+    renderEditor();
+  }
+}
+
+function populateEditorSelector(){
+  const el=document.getElementById('editor-item-sel');
+  el.innerHTML=catalog.items.map(i=>`<option value="${i.id}" ${i.id===editingItemId?'selected':''}>${esc(i.name)}</option>`).join('');
+}
+
+function renderEditor(){
+  const item=catalog.items.find(i=>i.id===editingItemId);
+  if(!item)return;
+  const osMap={};
+  catalog.operatingSystems.forEach(o=>osMap[o.id]=o.name);
+  
+  document.getElementById('editor-body').innerHTML=`
+  <div style="margin-bottom:20px">
+    <h3 style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Identification</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Name *</label><input id="e-name" value="${esc(item.name)}"></div>
+      <div class="form-group"><label>URL</label><input id="e-url" value="${esc(item.url||'')}"></div>
+      <div class="form-group"><label>Artifact Kind</label><input id="e-kind" value="${esc(item.itemKind||'Artifact')}" placeholder="Application, Registry Edit, Scriptlet, Fix..."></div>
+      <div class="form-group"><label>Risk</label><select id="e-risk"><option ${item.risk==='Low'?'selected':''}>Low</option><option ${item.risk==='Medium'?'selected':''}>Medium</option><option ${item.risk==='High'?'selected':''}>High</option></select></div>
+      <div class="form-group full"><label>Description</label><input id="e-desc" value="${esc(item.description||'')}"></div>
+      <div class="form-group full"><label>Notes</label><textarea id="e-notes">${esc(item.notes||'')}</textarea></div>
+    </div>
+  </div>
+  <hr>
+  <div style="margin-bottom:20px">
+    <h3 style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Classification</h3>
+    <div class="form-grid four classification-compact">
+      <div class="form-group"><label>Categories</label>${renderMultiSelect('e-categories',catalog.categories,item.categories)}</div>
+      <div class="form-group"><label>Tags</label>${renderMultiSelect('e-tags',catalog.tags,item.tags)}</div>
+      <div class="form-group"><label>Types</label>${renderMultiSelect('e-types',catalog.types,item.types)}</div>
+      <div class="form-group"><label>Phases</label>${renderMultiSelect('e-phases',catalog.phases,item.phases)}</div>
+    </div>
+  </div>
+  <hr>
+  <div style="margin-bottom:20px">
+    <h3 style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Operating Systems & Commands</h3>
+    ${activeOperatingSystems().map(os=>{
+      const osData=item.os[os.id]||{command:'',manualInstall:false};
+      return `<div class="os-section">
+        <h4>${esc(os.name)}</h4>
+        <div class="form-group" style="margin-bottom:8px"><label>Install Command</label>
+          <textarea id="e-os-cmd-${os.id}" style="font-family:monospace;font-size:12px">${esc(osData.command||'')}</textarea></div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="e-os-manual-${os.id}" style="width:auto" ${osData.manualInstall?'checked':''}> Manual Install Required
+        </label>
+      </div>`;
+    }).join('')}
+  </div>
+  <hr>
+  <div style="margin-bottom:20px">
+    <h3 style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Management</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Dependencies</label><input id="e-deps" value="${esc((item.dependencies||[]).join(', '))}"></div>
+      <div class="form-group"><label>Secret References</label><input id="e-secrets" value="${esc((item.secrets||[]).join(', '))}"></div>
+      <div class="form-group full">
+        <label style="display:flex;gap:16px">
+          <span><input type="checkbox" id="e-enabled" style="width:auto" ${item.enabled?'checked':''}> Enabled</span>
+          <span><input type="checkbox" id="e-optional" style="width:auto" ${item.optional?'checked':''}> Optional</span>
+          <span><input type="checkbox" id="e-reboot" style="width:auto" ${item.requiresReboot?'checked':''}> Requires Reboot</span>
+          <span><input type="checkbox" id="e-testing" style="width:auto" ${item.testing?'checked':''}> Testing/Evaluating</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div style="margin-bottom:20px">
+    <h3 style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Manual Tasks & Offboarding</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Manual Steps</label><textarea id="e-manual" style="min-height:100px">${esc(item.manualSteps||'')}</textarea></div>
+      <div class="form-group"><label>Offboarding Steps</label><textarea id="e-offboard" style="min-height:100px">${esc(item.offboardingSteps||'')}</textarea></div>
+    </div>
+  </div>`;
+}
+
+function renderMultiSelect(id,options,selected){
+  const normalized=(options||[]).map(o=>typeof o==='object'?o:{value:o,label:o});
+  const selectedSet=new Set(selected||[]);
+  const labelFor=v=>(normalized.find(o=>o.value===v)?.label)||v;
+  const tags=(selected||[]).map(s=>`<span class="ms-tag" data-value="${esc(s)}">${esc(labelFor(s))}<span onclick="removeTag('${id}','${esc(s)}')">×</span></span>`).join('');
+  const opts=normalized.filter(o=>!selectedSet.has(o.value)).map(o=>`<div onclick="addTag('${id}','${esc(o.value)}','${esc(o.label)}')" data-ms-opt="${id}" data-value="${esc(o.value)}">${esc(o.label)}</div>`).join('');
+  return `<div class="multi-select" id="${id}" onclick="focusMs('${id}')">
+    ${tags}
+    <input class="ms-input" id="${id}-input" placeholder="Add…" oninput="filterMsDropdown('${id}',this.value)" onblur="hideMsDropdown('${id}')" onkeydown="msKeydown(event,'${id}')">
+  </div>
+  <div class="ms-dropdown hidden" id="${id}-dd">${opts}</div>`;
+}
+function focusMs(id){document.getElementById(id+'-input').focus();showMsDropdown(id,'');}
+function showMsDropdown(id,q){
+  const dd=document.getElementById(id+'-dd');
+  dd.classList.remove('hidden');
+  const rect=document.getElementById(id).getBoundingClientRect();
+  dd.style.top=(rect.bottom+2)+'px';
+  dd.style.left=rect.left+'px';
+  dd.style.position='fixed';
+  document.body.appendChild(dd);
+}
+function hideMsDropdown(id){setTimeout(()=>document.getElementById(id+'-dd')?.classList.add('hidden'),120);}
+function filterMsDropdown(id,q){
+  const dd=document.getElementById(id+'-dd');
+  dd.querySelectorAll('div').forEach(d=>{
+    d.style.display=d.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+  showMsDropdown(id,q);
+}
+function msKeydown(e,id){
+  if(e.key==='Enter'){
+    const v=document.getElementById(id+'-input').value.trim();
+    if(v)addTag(id,v);
+  }
+}
+function addTag(id,val,label){
+  const container=document.getElementById(id);
+  const input=document.getElementById(id+'-input');
+  const existing=Array.from(container.querySelectorAll('.ms-tag')).map(t=>t.dataset.value||t.textContent.slice(0,-1));
+  if(!existing.includes(val)){
+    const tag=document.createElement('span');
+    tag.className='ms-tag'; tag.dataset.value=val;
+    tag.innerHTML=`${esc(label||val)}<span onclick="removeTag('${id}','${esc(val)}')">×</span>`;
+    container.insertBefore(tag,input);
+  }
+  input.value='';
+  hideMsDropdown(id);
+}
+function removeTag(id,val){
+  const container=document.getElementById(id);
+  container.querySelectorAll('.ms-tag').forEach(t=>{if((t.dataset.value||t.textContent.slice(0,-1))===val)t.remove();});
+}
+function getMsTags(id){
+  const container=document.getElementById(id);
+  if(!container)return[];
+  return Array.from(container.querySelectorAll('.ms-tag')).map(t=>t.dataset.value||t.textContent.slice(0,-1));
+}
+
+function collectEditorForm(){
+  const item=catalog.items.find(i=>i.id===editingItemId);
+  if(!item)return;
+  item.itemKind=document.getElementById('e-kind')?.value||item.itemKind||'Application';
+  item.name=document.getElementById('e-name')?.value||item.name||'Untitled Item';
+  item.url=document.getElementById('e-url')?.value||'';
+  item.description=document.getElementById('e-desc')?.value||'';
+  item.notes=document.getElementById('e-notes')?.value||'';
+  item.categories=getMsTags('e-categories');
+  item.tags=getMsTags('e-tags');
+  item.types=getMsTags('e-types');
+  item.phases=getMsTags('e-phases');
+  item.dependencies=(document.getElementById('e-deps')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  item.secrets=(document.getElementById('e-secrets')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  item.enabled=!!document.getElementById('e-enabled')?.checked;
+  item.optional=!!document.getElementById('e-optional')?.checked;
+  item.requiresReboot=!!document.getElementById('e-reboot')?.checked;
+  item.testing=!!document.getElementById('e-testing')?.checked;
+  item.manualSteps=document.getElementById('e-manual')?.value||'';
+  item.offboardingSteps=document.getElementById('e-offboard')?.value||'';
+  item.os={};
+  activeOperatingSystems().forEach(os=>{
+    const cmd=document.getElementById(`e-os-cmd-${os.id}`)?.value||'';
+    const manual=!!document.getElementById(`e-os-manual-${os.id}`)?.checked;
+    if(cmd.trim()||manual)item.os[os.id]={command:cmd,manualInstall:manual};
+  });
+  populateEditorSelector();
+}
+
+function countChecklistItems(items){
+  let total=0,done=0;
+  (items||[]).forEach(i=>{
+    total++; if(i.done)done++;
+    const sub=countChecklistItems(i.children||[]);
+    total+=sub.total; done+=sub.done;
+  });
+  return {total,done};
+}
+function normalizeChecklistItem(item){
+  if(!item)return {id:'i'+Date.now(),title:'Untitled',description:'',done:false,children:[]};
+  item.id=item.id||('i'+Date.now()+Math.random().toString(16).slice(2));
+  item.title=item.title||item.text||'Untitled';
+  item.description=item.description||'';
+  item.done=!!item.done;
+  item.children=(item.children||[]).map(normalizeChecklistItem);
+  return item;
+}
+function normalizeChecklistTree(items){return (items||[]).map(normalizeChecklistItem);}
+function onChecklistSelect(){
+  selectedChecklistId=document.getElementById('cl-selector')?.value||null;
+  renderChecklists();
+}
+function renderClTree(items,clId,level=0,prefix=[]){
+  return (items||[]).map((item,idx)=>{
+    normalizeChecklistItem(item);
+    const num=[...prefix, idx+1];
+    const numberText=num.join('.');
+    const children=renderClTree(item.children||[],clId,level+1,num);
+    return `<div class="cl-tree-row" style="margin-left:${level*18}px" draggable="false" data-cl-id="${clId}" data-item-id="${item.id}" data-level="${level}">
+      <div class="cl-item ${item.done?'cl-item-done':''}" ondragover="clDragOver(event)" ondrop="clDrop(event,'${clId}','${item.id}')">
+        <span class="cl-drag" draggable="true" ondragstart="clDragStart(event,'${clId}','${item.id}')" title="Drag to move. Drop farther right to indent, farther left to outdent.">⠿</span>
+        <input type="checkbox" ${item.done?'checked':''} onchange="toggleClItem('${clId}','${item.id}',this.checked)">
+        <span class="cl-num">${numberText}</span>
+        <div class="cl-item-text">
+          <div class="cl-item-title">${esc(item.title)}</div>
+          ${item.description?`<div class="cl-item-desc">${esc(item.description)}</div>`:''}
+        </div>
+        <button class="small success" onclick="addClChild('${clId}','${item.id}')">+</button>
+        <button class="small" onclick="editClItem('${clId}','${item.id}')">Edit</button>
+        <button class="small danger" onclick="removeClItem('${clId}','${item.id}')">−</button>
+      </div>
+      ${children?`<div class="nested">${children}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function clDragStart(event,clId,itemId){
+  checklistDragState={clId,itemId,startX:event.clientX};
+  event.dataTransfer.effectAllowed='move';
+  event.dataTransfer.setData('text/plain',itemId);
+}
+function clDragOver(event){ event.preventDefault(); event.dataTransfer.dropEffect='move'; }
+function clDrop(event,clId,targetItemId){
+  event.preventDefault();
+  if(!checklistDragState || checklistDragState.clId!==clId || checklistDragState.itemId===targetItemId) return;
+  moveChecklistByDrop(clId, checklistDragState.itemId, targetItemId, event.clientX - (checklistDragState.startX||event.clientX));
+  checklistDragState=null;
+}
+function moveChecklistByDrop(clId,sourceId,targetId,deltaX){
+  const cl=catalog.checklists.find(c=>c.id===clId); if(!cl)return;
+  const source=findClItem(cl.items,sourceId); const target=findClItem(cl.items,targetId); if(!source||!target)return;
+  const sourceIdx=source.items.findIndex(i=>i.id===sourceId);
+  const [moved]=source.items.splice(sourceIdx,1);
+  if(deltaX>50){
+    target.item.children=target.item.children||[];
+    target.item.children.push(moved);
+  }else if(deltaX<-50 && target.parent){
+    const parentFound=findClItem(cl.items,target.parent.id);
+    if(parentFound){
+      const pIdx=parentFound.items.findIndex(i=>i.id===target.parent.id);
+      parentFound.items.splice(pIdx+1,0,moved);
+    }else{
+      cl.items.push(moved);
+    }
+  }else{
+    const freshTarget=findClItem(cl.items,targetId);
+    if(freshTarget){
+      const tIdx=freshTarget.items.findIndex(i=>i.id===targetId);
+      freshTarget.items.splice(tIdx+1,0,moved);
+    }else{
+      cl.items.push(moved);
+    }
+  }
+  markDirty(); renderChecklists(); addLog('info','Moved checklist item');
+}
+
+
+function splitSteps(value){
+  if(Array.isArray(value)) return value.map(String).map(s=>s.trim()).filter(Boolean);
+  return String(value||'').split(/\r?\n/).map(s=>s.replace(/^[-*]\s*/,'').trim()).filter(Boolean);
+}
+function generatedChecklistItems(kind){
+  const isManual=kind==='manual';
+  const rows=[];
+  getProfileItems().slice().sort(alphaByName).forEach(item=>{
+    const children=[];
+    if(isManual){
+      splitSteps(item.manualSteps).forEach((step,idx)=>children.push({id:`gen-manual-${item.id}-step-${idx}`,title:step,description:`Generated from ${item.name} manual steps.`,generated:true,sourceItemId:item.id,children:[]}));
+      Object.entries(item.os||{}).forEach(([osId,osData])=>{
+        if(osData && osData.manualInstall) children.push({id:`gen-manual-${item.id}-os-${osId}`,title:`Manual install required for ${osId}`,description:`Generated from ${item.name} OS manual install flag.`,generated:true,sourceItemId:item.id,children:[]});
+      });
+    }else{
+      splitSteps(item.offboardingSteps).forEach((step,idx)=>children.push({id:`gen-offboarding-${item.id}-step-${idx}`,title:step,description:`Generated from ${item.name} offboarding steps.`,generated:true,sourceItemId:item.id,children:[]}));
+      if(item.offboardingRequired && !children.length) children.push({id:`gen-offboarding-${item.id}-required`,title:`Offboard ${item.name}`,description:`Generated from ${item.name} offboarding-required flag.`,generated:true,sourceItemId:item.id,children:[]});
+    }
+    if(children.length){
+      rows.push({id:`gen-${kind}-${item.id}`,title:item.name,description:`Generated from item: ${item.name}`,generated:true,sourceItemId:item.id,done:false,children});
+    }
+  });
+  return rows;
+}
+function overlayChecklistDone(generated, previousMap){
+  (generated||[]).forEach(i=>{
+    if(Object.prototype.hasOwnProperty.call(previousMap,i.id)) i.done=!!previousMap[i.id];
+    overlayChecklistDone(i.children||[], previousMap);
+  });
+}
+function flattenDone(items,map={}){
+  (items||[]).forEach(i=>{map[i.id]=!!i.done; flattenDone(i.children||[],map);});
+  return map;
+}
+function matchesCriteria(item,criteria){
+  criteria=criteria||{};
+  const itemOS=Object.keys(item.os||{});
+  const incItems=criteria.includeItemIds||[];
+  const excItems=criteria.excludeItemIds||[];
+  if(excItems.includes(item.id)) return false;
+  const exc = anyOverlap([item.itemKind],criteria.excludeKinds||[]) ||
+    anyOverlap(item.categories,criteria.excludeCategories||[]) ||
+    anyOverlap(item.tags,criteria.excludeTags||[]) ||
+    anyOverlap(item.types,criteria.excludeTypes||[]) ||
+    anyOverlap(item.phases,criteria.excludePhases||[]) ||
+    anyOverlap(itemOS,criteria.excludeOS||[]);
+  if(exc) return false;
+  const hasInclude = incItems.length || (criteria.includeKinds||[]).length || (criteria.includeCategories||[]).length || (criteria.includeTags||[]).length || (criteria.includeTypes||[]).length || (criteria.includePhases||[]).length || (criteria.includeOS||[]).length;
+  const inc = incItems.includes(item.id) ||
+    anyOverlap([item.itemKind],criteria.includeKinds||[]) ||
+    anyOverlap(item.categories,criteria.includeCategories||[]) ||
+    anyOverlap(item.tags,criteria.includeTags||[]) ||
+    anyOverlap(item.types,criteria.includeTypes||[]) ||
+    anyOverlap(item.phases,criteria.includePhases||[]) ||
+    anyOverlap(itemOS,criteria.includeOS||[]);
+  return hasInclude ? inc : false;
+}
+function generatedAutoChecklistItems(cl){
+  const criteria=cl.autoCriteria||{};
+  return getProfileItems().filter(item=>matchesCriteria(item,criteria)).sort(alphaByName).map(item=>({
+    id:`gen-auto-${cl.id}-${item.id}`,
+    title:item.name,
+    description:`Generated from item: ${item.name}${item.itemKind?` · Kind: ${item.itemKind}`:''}`,
+    generated:true,
+    sourceItemId:item.id,
+    done:false,
+    children:splitSteps(item.manualSteps||item.offboardingSteps).map((step,idx)=>({id:`gen-auto-${cl.id}-${item.id}-step-${idx}`,title:step,description:`Generated from ${item.name}.`,generated:true,sourceItemId:item.id,children:[]}))
+  }));
+}
+function addAutoChecklist(){
+  const itemOptions=(catalog.items||[]).slice().sort(alphaByName).map(i=>({value:i.id,label:i.name}));
+  const kinds=[...new Set((catalog.items||[]).map(i=>i.itemKind||'Artifact'))].sort();
+  showModal('Create Auto Checklist', `
+    <div class="form-grid single">
+      <div class="form-group"><label>Checklist Name</label><input id="auto-cl-name" value="Auto Checklist"></div>
+      <div class="form-group"><label>Include Kinds</label>${renderMultiSelect('auto-inc-kind',kinds,[])}</div>
+      <div class="form-group"><label>Exclude Kinds</label>${renderMultiSelect('auto-exc-kind',kinds,[])}</div>
+      <div class="form-group"><label>Include Categories</label>${renderMultiSelect('auto-inc-cat',(catalog.categories||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Exclude Categories</label>${renderMultiSelect('auto-exc-cat',(catalog.categories||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Include Tags</label>${renderMultiSelect('auto-inc-tag',(catalog.tags||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Exclude Tags</label>${renderMultiSelect('auto-exc-tag',(catalog.tags||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Include Types</label>${renderMultiSelect('auto-inc-type',(catalog.types||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Exclude Types</label>${renderMultiSelect('auto-exc-type',(catalog.types||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Include Phases</label>${renderMultiSelect('auto-inc-phase',(catalog.phases||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Exclude Phases</label>${renderMultiSelect('auto-exc-phase',(catalog.phases||[]).slice().sort(),[])}</div>
+      <div class="form-group"><label>Include Operating Systems</label>${renderMultiSelect('auto-inc-os',activeOperatingSystems().map(o=>({value:o.id,label:o.name})),[])}</div>
+      <div class="form-group"><label>Exclude Operating Systems</label>${renderMultiSelect('auto-exc-os',activeOperatingSystems().map(o=>({value:o.id,label:o.name})),[])}</div>
+      <div class="form-group"><label>Include Individual Items</label>${renderMultiSelect('auto-inc-items',itemOptions,[])}</div>
+      <div class="form-group"><label>Exclude Individual Items</label>${renderMultiSelect('auto-exc-items',itemOptions,[])}</div>
+    </div>
+  `,'Create',()=>{
+    const name=(document.getElementById('auto-cl-name')?.value||'Auto Checklist').trim();
+    const cl={id:'cl'+Date.now(),clientId:ctx.clientId,name,enabled:true,autoCriteria:{
+      includeKinds:getMsTags('auto-inc-kind'),excludeKinds:getMsTags('auto-exc-kind'),
+      includeCategories:getMsTags('auto-inc-cat'),excludeCategories:getMsTags('auto-exc-cat'),
+      includeTags:getMsTags('auto-inc-tag'),excludeTags:getMsTags('auto-exc-tag'),
+      includeTypes:getMsTags('auto-inc-type'),excludeTypes:getMsTags('auto-exc-type'),
+      includePhases:getMsTags('auto-inc-phase'),excludePhases:getMsTags('auto-exc-phase'),
+      includeOS:getMsTags('auto-inc-os'),excludeOS:getMsTags('auto-exc-os'),
+      includeItemIds:getMsTags('auto-inc-items'),excludeItemIds:getMsTags('auto-exc-items')
+    },items:[]};
+    catalog.checklists.push(cl); selectedChecklistId=cl.id; markDirty(); renderChecklists(); addLog('info',`Created auto checklist: ${name}`);
+  });
+}
+function syncGeneratedChecklists(){
+  (catalog.checklists||[]).forEach(cl=>{
+    const nm=String(cl.name||'').toLowerCase();
+    const kind=nm.includes('offboarding')?'offboarding':(nm.includes('manual')?'manual':'');
+    const doneMap=flattenDone(cl.items||[]);
+    const staticItems=(cl.items||[]).filter(i=>!i.generated && !String(i.id||'').startsWith('gen-'));
+    let generated=[];
+    if(cl.autoCriteria){
+      generated=generatedAutoChecklistItems(cl);
+    }else if(kind && isProtectedChecklist(cl)){
+      generated=generatedChecklistItems(kind);
+    }else{
+      return;
+    }
+    overlayChecklistDone(generated, doneMap);
+    cl.items=normalizeChecklistTree([...staticItems, ...generated]);
+  });
+}
+function findClItem(items,itemId,parent=null){
+  for(const item of (items||[])){
+    if(item.id===itemId) return {item,items,parent};
+    const child=findClItem(item.children||[],itemId,item);
+    if(child) return child;
+  }
+  return null;
+}
+function renderChecklists(){
+  syncGeneratedChecklists();
+  const selector=document.getElementById('cl-selector');
+  const cls=sortedChecklistsForClient(ctx.clientId);
+  if(!selector)return;
+  if(!cls.length){
+    selectedChecklistId=null;
+    selector.innerHTML='';
+    document.getElementById('cl-content').innerHTML='<div class="card"><p style="color:var(--text2)">No checklists exist for this client. Use + New Checklist to create one.</p></div>';
+    const label=document.getElementById('cl-progress-label'); if(label)label.textContent='0/0 complete';
+    return;
+  }
+  if(!selectedChecklistId || !cls.find(c=>c.id===selectedChecklistId)) selectedChecklistId=cls[0].id;
+  selector.innerHTML=cls.map(c=>`<option value="${c.id}" ${c.id===selectedChecklistId?'selected':''}>${esc(c.name)}</option>`).join('');
+  const cl=cls.find(c=>c.id===selectedChecklistId);
+  cl.items=normalizeChecklistTree(cl.items||[]);
+  const counts=countChecklistItems(cl.items);
+  const label=document.getElementById('cl-progress-label'); if(label)label.textContent=`${counts.done}/${counts.total} complete`;
+  const sourceNote=(isProtectedChecklist(cl)||cl.autoCriteria)?checklistSourceNote(cl):'';
+  document.getElementById('cl-content').innerHTML=`
+    <div style="padding:16px">
+      <div class="cl-card ${cl.enabled===false?'disabled-row':''}">
+        <div class="cl-card-hdr"><h3>${esc(cl.name)} ${cl.enabled===false?'<span class="badge red">Disabled</span>':''}</h3><span class="cl-progress">${counts.done}/${counts.total}</span></div>
+        <div class="cl-body">
+          ${sourceNote?`<div class="badge blue" style="margin-bottom:10px;white-space:normal;line-height:1.4">${esc(sourceNote)}</div>`:''}
+          <div class="progress-bar"><div class="progress-fill" style="width:${counts.total?Math.round(counts.done/counts.total*100):0}%"></div></div>
+          <div style="margin-top:12px">${renderClTree(cl.items,cl.id)}</div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input id="new-cl-item-title" placeholder="New root checklist item…" onkeydown="if(event.key==='Enter')addClItem('${cl.id}')">
+            <button onclick="addClItem('${cl.id}')">+ Add Root Item</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+let parentToggleUndo = null;
+function setChecklistDoneRecursive(item, done){
+  item.done=done;
+  (item.children||[]).forEach(child=>setChecklistDoneRecursive(child,done));
+}
+function snapshotChecklistDone(item,map={}){
+  map[item.id]=!!item.done;
+  (item.children||[]).forEach(child=>snapshotChecklistDone(child,map));
+  return map;
+}
+function restoreChecklistDone(item,map){
+  if(Object.prototype.hasOwnProperty.call(map,item.id)) item.done=map[item.id];
+  (item.children||[]).forEach(child=>restoreChecklistDone(child,map));
+}
+function toggleClItem(clId,itemId,done){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId);
+  if(!found)return;
+  const hasChildren=(found.item.children||[]).length>0;
+  if(hasChildren && done){
+    parentToggleUndo={clId,itemId,snapshot:snapshotChecklistDone(found.item),expires:Date.now()+5000};
+    setChecklistDoneRecursive(found.item,true);
+  }else if(hasChildren && !done){
+    if(parentToggleUndo && parentToggleUndo.clId===clId && parentToggleUndo.itemId===itemId && Date.now()<parentToggleUndo.expires){
+      restoreChecklistDone(found.item,parentToggleUndo.snapshot);
+      parentToggleUndo=null;
+    }else{
+      setChecklistDoneRecursive(found.item,false);
+    }
+  }else{
+    found.item.done=done;
+  }
+  markDirty();renderChecklists();addLog(done?'ok':'info',`${done?'Completed':'Unchecked'}: ${found.item.title||found.item.text}`);
+}
+function removeClItem(clId,itemId){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId); if(!found)return;
+  found.items.splice(found.items.findIndex(i=>i.id===itemId),1); markDirty();renderChecklists();addLog('info','Removed checklist item');
+}
+function addClItem(clId){
+  const inp=document.getElementById('new-cl-item-title'); const title=inp?.value.trim(); if(!title)return;
+  const cl=catalog.checklists.find(c=>c.id===clId); if(cl){cl.items=cl.items||[];cl.items.push({id:'i'+Date.now(),title,description:'',done:false,children:[]});markDirty();inp.value='';renderChecklists();addLog('info',`Added checklist item: ${title}`);}
+}
+function addClChild(clId,parentItemId){
+  const title=prompt('Sub-task title:'); if(!title)return;
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,parentItemId); if(!found)return;
+  found.item.children=found.item.children||[]; found.item.children.push({id:'i'+Date.now(),title,description:'',done:false,children:[]}); markDirty();renderChecklists();addLog('info',`Added sub-task: ${title}`);
+}
+function editClItem(clId,itemId){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId); if(!found)return;
+  const newTitle=prompt('Checklist item title:', found.item.title||found.item.text||'');
+  if(newTitle===null)return;
+  const newDesc=prompt('Checklist item description:', found.item.description||'');
+  found.item.title=newTitle.trim()||found.item.title||found.item.text||'Untitled';
+  found.item.description=newDesc===null?(found.item.description||''):newDesc;
+  markDirty(); renderChecklists(); addLog('info',`Edited checklist item: ${found.item.title}`);
+}
+function moveClItem(clId,itemId,dir){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId); if(!found)return;
+  const idx=found.items.findIndex(i=>i.id===itemId); const newIdx=idx+dir; if(newIdx<0||newIdx>=found.items.length)return;
+  const [moved]=found.items.splice(idx,1); found.items.splice(newIdx,0,moved); markDirty();renderChecklists();
+}
+
+function indentClItem(clId,itemId){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId); if(!found)return;
+  const idx=found.items.findIndex(i=>i.id===itemId); if(idx<=0)return;
+  const [moved]=found.items.splice(idx,1);
+  const parent=found.items[idx-1]; parent.children=parent.children||[]; parent.children.push(moved);
+  markDirty();renderChecklists();addLog('info','Indented checklist item');
+}
+function outdentClItem(clId,itemId){
+  const cl=catalog.checklists.find(c=>c.id===clId); const found=findClItem(cl?.items,itemId); if(!found || !found.parent)return;
+  const idx=found.items.findIndex(i=>i.id===itemId); const [moved]=found.items.splice(idx,1);
+  const parentFound=findClItem(cl.items, found.parent.id); if(!parentFound)return;
+  const pIdx=parentFound.items.findIndex(i=>i.id===found.parent.id);
+  parentFound.items.splice(pIdx+1,0,moved);
+  markDirty();renderChecklists();addLog('info','Outdented checklist item');
+}
+function addChecklist(){
+  const name=prompt('Checklist name:'); if(!name)return;
+  catalog.checklists.push({id:'cl'+Date.now(),clientId:ctx.clientId,name,items:[]}); selectedChecklistId=catalog.checklists[catalog.checklists.length-1].id; markDirty();renderChecklists();addLog('info',`Created checklist: ${name}`);
+}
+function cloneChecklist(){
+  const clId=document.getElementById('cl-selector').value; const cl=catalog.checklists.find(c=>c.id===clId); if(!cl)return;
+  const clone=JSON.parse(JSON.stringify(cl)); clone.id='cl'+Date.now(); clone.name=cl.name+' (Copy)'; resetChecklistIds(clone.items||[]); catalog.checklists.push(clone); selectedChecklistId=clone.id; markDirty();renderChecklists();addLog('info',`Cloned checklist: ${cl.name}`);
+}
+function resetChecklistIds(items){(items||[]).forEach(i=>{i.id='i'+Date.now()+Math.random().toString(16).slice(2); resetChecklistIds(i.children||[]);});}
+function isProtectedChecklist(cl){ return ['manual','manual install','offboarding'].includes(String(cl?.name||'').trim().toLowerCase()) || cl?.system===true; }
+function checklistSourceNote(cl){
+  const name=String(cl?.name||'').trim().toLowerCase();
+  if(cl?.autoCriteria) return 'Auto-generated from checklist criteria. Include/exclude rules work like profile rules: exclusions override inclusions.';
+  if(name.includes('manual')) return 'Generated from artifact/item Manual Steps and operating-system Manual Install flags for the selected client/profile. Static items may also be stored in the checklist.';
+  if(name.includes('offboarding')) return 'Generated from artifact/item Offboarding Steps and offboarding-related metadata for the selected client/profile. Static items may also be stored in the checklist.';
+  return 'System checklist generated from catalog metadata.';
+}
+function renameChecklist(){
+  const clId=document.getElementById('cl-selector')?.value; const cl=catalog.checklists.find(c=>c.id===clId); if(!cl)return;
+  const name=prompt('Checklist name:',cl.name||''); if(name===null)return; cl.name=name.trim()||cl.name;
+  sortNamedEntities(); markDirty(); renderChecklists(); addLog('info',`Renamed checklist: ${cl.name}`);
+}
+function toggleChecklistEnabled(){
+  const clId=document.getElementById('cl-selector')?.value; const cl=catalog.checklists.find(c=>c.id===clId); if(!cl)return;
+  cl.enabled=cl.enabled===false; markDirty(); renderChecklists(); addLog('info',`${cl.enabled===false?'Disabled':'Enabled'} checklist: ${cl.name}`);
+}
+function deleteChecklist(){
+  const clId=document.getElementById('cl-selector').value; const cl=catalog.checklists.find(c=>c.id===clId); if(!cl)return; if(isProtectedChecklist(cl)){alert('Manual and Offboarding are generated/system checklists and cannot be deleted.');return;} if(!confirm(`Delete checklist "${cl.name}"?`))return;
+  catalog.checklists=catalog.checklists.filter(c=>c.id!==clId); selectedChecklistId=null; markDirty();renderChecklists();addLog('info',`Deleted checklist: ${cl.name}`);
+}
+// ===== GENERATED OUTPUTS =====
+function getProfileItems(){
+  const profile=catalog.profiles.find(p=>p.id===ctx.profileId);
+  if(!profile)return catalog.items.filter(i=>i.enabled);
+  return catalog.items.filter(i=>{
+    if(!i.enabled || i.testing)return false;
+    const itemOS=Object.keys(i.os||{});
+    const excludedIndividual=(profile.excludeItemIds||[]).includes(i.id);
+    if(excludedIndividual)return false;
+    const selected=(profile.selectedItemIds||[]).includes(i.id);
+    const hasInclude=(profile.includeCategories||[]).length||(profile.includeTags||[]).length||(profile.includeTypes||[]).length||(profile.includePhases||[]).length||(profile.includeOS||[]).length||(profile.selectedItemIds||[]).length;
+    const inc = selected ||
+      anyOverlap(i.categories,profile.includeCategories||[]) ||
+      anyOverlap(i.tags,profile.includeTags||[]) ||
+      anyOverlap(i.types,profile.includeTypes||[]) ||
+      anyOverlap(i.phases,profile.includePhases||[]) ||
+      anyOverlap(itemOS,profile.includeOS||[]);
+    const exc =
+      anyOverlap(i.categories,profile.excludeCategories||[]) ||
+      anyOverlap(i.tags,profile.excludeTags||[]) ||
+      anyOverlap(i.types,profile.excludeTypes||[]) ||
+      anyOverlap(i.phases,profile.excludePhases||[]) ||
+      anyOverlap(itemOS,profile.excludeOS||[]);
+    if(exc)return false;
+    return hasInclude?inc:true;
+  });
+}
+
+function generateScript(osId){
+  const os=catalog.operatingSystems.find(o=>o.id===osId);
+  if(!os)return'';
+  const items=getProfileItems().filter(i=>i.os[osId]);
+  const secrets=catalog.secrets.filter(s=>s.clientId===ctx.clientId);
+  const isPS=os.scriptType==='powershell';
+  const cmt=isPS?'#':'#';
+  let out=`${cmt} ${os.name} Installation Script\n`;
+  out+=`${cmt} Client: ${currentClientName()}\n`;
+  out+=`${cmt} Profile: ${currentProfileName()}\n`;
+  out+=`${cmt} Endpoint: ${ctx.endpoint||'(not set)'}\n`;
+  out+=`${cmt} Generated: ${new Date().toISOString()}\n\n`;
+  if(secrets.length){
+    out+=`${cmt} === SECRETS ===\n`;
+    secrets.forEach(s=>{
+      out+=isPS?`$${s.key} = "${s.value||'PLACEHOLDER'}"\n`:`export ${s.key}="${s.value||'PLACEHOLDER'}"\n`;
+    });
+    out+='\n';
+  }
+  out+=`${cmt} === INSTALLATIONS ===\n`;
+  items.forEach(i=>{
+    const osData=i.os[osId];
+    out+=`\n${cmt} --- ${i.name} ---\n`;
+    if(i.description)out+=`${cmt} ${i.description}\n`;
+    if(osData.manualInstall){
+      out+=`${cmt} MANUAL INSTALL REQUIRED\n`;
+      if(i.url)out+=`${cmt} URL: ${i.url}\n`;
+    } else if(osData.command){
+      out+=osData.command+'\n';
+    }
+    if(i.requiresReboot)out+=`${cmt} REQUIRES REBOOT\n`;
+    if(i.manualSteps)out+=`${cmt} Manual: ${i.manualSteps}\n`;
+  });
+  return out;
+}
+
+function renderChecklistItemsMd(items,level){
+  return (items||[]).map(i=>{
+    const indent='  '.repeat(level);
+    let line=`${indent}- [${i.done?'x':' '}] ${i.title||i.text||'Untitled'}\n`;
+    if(i.description)line+=`${indent}  > ${i.description}\n`;
+    line+=renderChecklistItemsMd(i.children||[],level+1);
+    return line;
+  }).join('');
+}
+
+function generateChecklistMd(cl){
+  let out=`# ${cl.name}\n\n`;
+  out+=`**Client:** ${currentClientName()}  \n`;
+  out+=`**Endpoint:** ${ctx.endpoint||'(not set)'}  \n`;
+  out+=`**Date:** ${ctx.date}  \n\n`;
+  out+=renderChecklistItemsMd(cl.items||[],0);
+  return out;
+}
+
+function flattenChecklistItems(items){
+  const out=[]; (items||[]).forEach(i=>{out.push({title:i.title||i.text||'Untitled',done:!!i.done}); out.push(...flattenChecklistItems(i.children||[]));}); return out;
+}
+
+function generateBuildState(){
+  const cls=sortedChecklistsForClient(ctx.clientId);
+  const state={
+    endpoint:ctx.endpoint,client:currentClientName(),profile:currentProfileName(),
+    date:ctx.date,generated:new Date().toISOString(),
+    checklists:{}
+  };
+  cls.forEach(c=>{
+    state.checklists[c.name]={
+      total:countChecklistItems(c.items||[]).total,
+      done:countChecklistItems(c.items||[]).done,
+      items:flattenChecklistItems(c.items||[])
+    };
+  });
+  return JSON.stringify(state,null,2);
+}
+
+function generateLog(){
+  return logs.map(l=>`[${l.time}] [${l.level.toUpperCase()}] ${l.msg} | client=${l.client} endpoint=${l.endpoint}`).join('\n');
+}
+
+function getOutputFiles(){
+  syncGeneratedChecklists();
+  const files=[];
+  catalog.operatingSystems.forEach(os=>{
+    files.push({cat:'script',name:os.scriptFile,content:()=>generateScript(os.id),osId:os.id});
+  });
+  catalog.checklists.filter(c=>c.clientId===ctx.clientId).forEach(cl=>{
+    files.push({cat:'checklist',name:cl.name.replace(/\s+/g,'-')+'.md',content:()=>generateChecklistMd(cl),clId:cl.id});
+  });
+  if(ctx.endpoint){
+    files.push({cat:'state',name:(ctx.endpoint||'endpoint')+'-build-state.json',content:generateBuildState});
+  }
+  files.push({cat:'log',name:'build.log',content:generateLog});
+  return files;
+}
+
+function renderOutputs(){
+  const files=getOutputFiles();
+  const validNames=new Set(files.map(f=>f.name));
+  Object.keys(outputSelections||{}).forEach(name=>{if(!validNames.has(name))delete outputSelections[name];});
+  files.forEach(f=>{if(!Object.prototype.hasOwnProperty.call(outputSelections,f.name))outputSelections[f.name]=true;});
+  const scriptFiles=files.filter(f=>f.cat==='script');
+  const clFiles=files.filter(f=>f.cat==='checklist');
+  const stateFiles=files.filter(f=>f.cat==='state');
+  const logFiles=files.filter(f=>f.cat==='log');
+  
+  document.getElementById('out-scripts-list').innerHTML=scriptFiles.map(f=>outputFileRow(f)).join('');
+  document.getElementById('out-checklists-list').innerHTML=clFiles.map(f=>outputFileRow(f)).join('');
+  document.getElementById('out-state-list').innerHTML=stateFiles.map(f=>outputFileRow(f)).join('');
+  document.getElementById('out-logs-list').innerHTML=logFiles.map(f=>outputFileRow(f)).join('');
+  
+  updateOutputSelCount();
+}
+
+function outputFileRow(f){
+  const sel=outputSelections[f.name]!==false;
+  const isSel=selectedOutputFile===f.name;
+  return `<div class="output-file ${isSel?'selected':''}" id="of-${f.name.replace(/[^a-z0-9]/gi,'_')}">
+    <input type="checkbox" ${sel?'checked':''} onchange="outputSelChange('${f.name}',this.checked)">
+    <span class="fname" onclick="previewOutput('${f.name}')">${esc(f.name)}</span>
+  </div>`;
+}
+
+function outputSelChange(name,checked){
+  outputSelections[name]=checked;
+  updateOutputSelCount();
+}
+
+function updateOutputSelCount(){
+  const files=getOutputFiles();
+  const count=files.filter(f=>outputSelections[f.name]!==false).length;
+  document.getElementById('output-sel-count').textContent=`${count} of ${files.length} file(s) selected`;
+}
+
+function toggleOutputCat(cat,checked){
+  getOutputFiles().filter(f=>f.cat===cat).forEach(f=>outputSelections[f.name]=checked);
+  renderOutputs();
+}
+
+function selectAllOutputs(v){
+  getOutputFiles().forEach(f=>outputSelections[f.name]=v);
+  renderOutputs();
+}
+
+function previewOutput(name){
+  selectedOutputFile=name;
+  const f=getOutputFiles().find(f=>f.name===name);
+  if(!f)return;
+  document.getElementById('preview-title').textContent=name;
+  document.getElementById('preview-content').textContent=f.content();
+  renderOutputs();
+}
+
+
+function crc32Bytes(bytes){
+  const table=crc32Bytes.table||(crc32Bytes.table=(()=>{let c,t=[];for(let n=0;n<256;n++){c=n;for(let k=0;k<8;k++)c=((c&1)?(0xEDB88320^(c>>>1)):(c>>>1));t[n]=c>>>0;}return t;})());
+  let crc=0xffffffff;
+  for(let i=0;i<bytes.length;i++) crc=(crc>>>8)^table[(crc^bytes[i])&0xff];
+  return (crc^0xffffffff)>>>0;
+}
+function push16(arr,n){arr.push(n&255,(n>>>8)&255);}
+function push32(arr,n){arr.push(n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255);}
+function pushBytes(arr,bytes){for(const b of bytes)arr.push(b);}
+function dosDateTime(d=new Date()){
+  const time=(d.getHours()<<11)|(d.getMinutes()<<5)|(Math.floor(d.getSeconds()/2));
+  const date=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  return {time,date};
+}
+function makeZip(files){
+  const enc=new TextEncoder();
+  const local=[]; const central=[]; let offset=0; const dt=dosDateTime(new Date());
+  (files||[]).forEach(f=>{
+    const safeName=String(f.name||'file.txt').replace(/^\/+/, '').replace(/\\/g,'/');
+    const nameBytes=enc.encode(safeName);
+    const contentBytes=enc.encode(String(f.content??''));
+    const crc=crc32Bytes(contentBytes); const size=contentBytes.length;
+    const lh=[];
+    pushBytes(lh,[0x50,0x4b,0x03,0x04]); push16(lh,20); push16(lh,0); push16(lh,0); push16(lh,dt.time); push16(lh,dt.date);
+    push32(lh,crc); push32(lh,size); push32(lh,size); push16(lh,nameBytes.length); push16(lh,0); pushBytes(lh,nameBytes); pushBytes(lh,contentBytes);
+    const ch=[];
+    pushBytes(ch,[0x50,0x4b,0x01,0x02]); push16(ch,20); push16(ch,20); push16(ch,0); push16(ch,0); push16(ch,dt.time); push16(ch,dt.date);
+    push32(ch,crc); push32(ch,size); push32(ch,size); push16(ch,nameBytes.length); push16(ch,0); push16(ch,0); push16(ch,0); push16(ch,0); push32(ch,0); push32(ch,offset); pushBytes(ch,nameBytes);
+    pushBytes(local,lh); pushBytes(central,ch); offset+=lh.length;
+  });
+  const end=[]; pushBytes(end,[0x50,0x4b,0x05,0x06]); push16(end,0); push16(end,0); push16(end,files.length); push16(end,files.length); push32(end,central.length); push32(end,local.length); push16(end,0);
+  return new Uint8Array([...local,...central,...end]);
+}
+
+function downloadZip(){
+  const files=getOutputFiles().filter(f=>outputSelections[f.name]!==false);
+  if(!files.length){alert('No files selected.');return;}
+  const client=(currentClientName()||'Client').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
+  const profile=(currentProfileName()||'Profile').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'');
+  const d=new Date();
+  const yyyy=d.getFullYear(); const mm=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0');
+  const hh=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0');
+  const zipName=`${client}-${profile}-${yyyy}${mm}${dd}-${hh}${mi}.zip`;
+  const payload=files.map(f=>({name:f.name,content:f.content()}));
+  const blob=new Blob([makeZip(payload)],{type:'application/zip'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url;a.download=zipName;a.click();URL.revokeObjectURL(url);
+  addLog('ok',`Exported ${files.length} files as ${zipName}`);
+}
+
+// ===== SETTINGS =====
+function settingsTab(tab, fromHistory=false){
+  settingsSection=tab;
+  document.querySelectorAll('.sn-item').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
+  if(!fromHistory && currentPage==='settings' && !suppressHistoryPush){history.pushState({page:'settings', settings:tab}, '', '#settings-'+tab);}
+  renderSettingsContent();
+}
+
+function renderSettingsContent(){
+  const el=document.getElementById('settings-content');
+  switch(settingsSection){
+    case 'clients': el.innerHTML=renderClientsSettings();break;
+    case 'profiles': el.innerHTML=renderProfilesSettings();break;
+    case 'categories': el.innerHTML=renderListSettings('categories','Categories');break;
+    case 'tags': el.innerHTML=renderListSettings('tags','Tags');break;
+    case 'types': el.innerHTML=renderListSettings('types','Types');break;
+    case 'phases': el.innerHTML=renderListSettings('phases','Phases');break;
+    case 'operating-systems': el.innerHTML=renderOSSettings();break;
+    case 'secrets': el.innerHTML=renderSecretsSettings();break;
+  }
+}
+
+function renderClientsSettings(){
+  const rows=(catalog.clients||[]).slice().sort(alphaByName);
+  return `<div class="section-hdr"><h2>Clients</h2><button onclick="addClient()">+ Add Client</button></div>
+  <div class="list-editor">
+  ${rows.map(c=>`<div class="le-row ${c.enabled===false?'disabled-row':''}">
+    <input value="${esc(c.name)}" onchange="updateClient('${c.id}',this.value)">
+    <label class="inline-check"><input type="checkbox" ${c.enabled!==false?'checked':''} onchange="toggleClient('${c.id}',this.checked)"> Enabled</label>
+    <button class="small danger" onclick="deleteClient('${c.id}')">Delete</button>
+  </div>`).join('')}
+  </div>`;
+}
+
+function addClient(){
+  const name=prompt('Client name:');
+  if(!name)return;
+  const id='c'+Date.now();
+  catalog.clients.push({id,name,enabled:true});
+  markDirty();populateCtxDropdowns();renderSettingsContent();
+}
+function updateClient(id,name){
+  const c=catalog.clients.find(c=>c.id===id);
+  if(c){c.name=name;markDirty();refreshCurrentViews();}
+}
+function toggleClient(id,enabled){
+  const c=catalog.clients.find(c=>c.id===id);
+  if(c){c.enabled=enabled;markDirty();refreshCurrentViews();}
+}
+function deleteClient(id){
+  if(!confirm('Delete client? This will not remove associated items.'))return;
+  catalog.clients=catalog.clients.filter(c=>c.id!==id);
+  if(ctx.clientId===id)ctx.clientId=catalog.clients[0]?.id||'';
+  markDirty();populateCtxDropdowns();renderSettingsContent();
+}
+
+function renderProfilesSettings(){
+  const profs=(catalog.profiles||[]).filter(p=>p.clientId===ctx.clientId).sort(alphaByName);
+  const itemOptions=catalog.items.slice().sort(alphaByName).map(i=>({value:i.id,label:i.name}));
+  return `<div class="section-hdr"><h2>Profiles (${currentClientName()})</h2><button onclick="addProfile()">+ Add Profile</button></div>
+  ${profs.map(p=>`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <input value="${esc(p.name)}" style="font-weight:600;font-size:15px;border:none;background:transparent;padding:0;color:var(--text)" onchange="updateProfile('${p.id}','name',this.value)">
+      <label class="inline-check"><input type="checkbox" ${p.enabled!==false?'checked':''} onchange="updateProfile('${p.id}','enabled',this.checked);populateProfileDropdown();"> Enabled</label><button onclick="saveProfile('${p.id}')">Save</button><button class="small danger" onclick="deleteProfile('${p.id}')">Delete</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Include Individual Items</label>${renderMultiSelect('prof-items-'+p.id,itemOptions,p.selectedItemIds||[])}</div>
+      <div class="form-group"><label>Exclude Individual Items</label>${renderMultiSelect('prof-exc-items-'+p.id,itemOptions,p.excludeItemIds||[])}</div>
+      <div class="form-group"><label>Include Categories</label>${renderMultiSelect('prof-inc-cat-'+p.id,(catalog.categories||[]).slice().sort(),p.includeCategories||[])}</div>
+      <div class="form-group"><label>Exclude Categories</label>${renderMultiSelect('prof-exc-cat-'+p.id,(catalog.categories||[]).slice().sort(),p.excludeCategories||[])}</div>
+      <div class="form-group"><label>Include Tags</label>${renderMultiSelect('prof-inc-tags-'+p.id,(catalog.tags||[]).slice().sort(),p.includeTags||[])}</div>
+      <div class="form-group"><label>Exclude Tags</label>${renderMultiSelect('prof-exc-tags-'+p.id,(catalog.tags||[]).slice().sort(),p.excludeTags||[])}</div>
+      <div class="form-group"><label>Include Types</label>${renderMultiSelect('prof-inc-types-'+p.id,(catalog.types||[]).slice().sort(),p.includeTypes||[])}</div>
+      <div class="form-group"><label>Exclude Types</label>${renderMultiSelect('prof-exc-types-'+p.id,(catalog.types||[]).slice().sort(),p.excludeTypes||[])}</div>
+      <div class="form-group"><label>Include Phases</label>${renderMultiSelect('prof-inc-ph-'+p.id,(catalog.phases||[]).slice().sort(),p.includePhases||[])}</div>
+      <div class="form-group"><label>Exclude Phases</label>${renderMultiSelect('prof-exc-ph-'+p.id,(catalog.phases||[]).slice().sort(),p.excludePhases||[])}</div>
+      <div class="form-group"><label>Include Operating Systems</label>${renderMultiSelect('prof-inc-os-'+p.id,activeOperatingSystems().map(o=>({value:o.id,label:o.name})).sort((a,b)=>a.label.localeCompare(b.label)),p.includeOS||[])}</div>
+      <div class="form-group"><label>Exclude Operating Systems</label>${renderMultiSelect('prof-exc-os-'+p.id,activeOperatingSystems().map(o=>({value:o.id,label:o.name})).sort((a,b)=>a.label.localeCompare(b.label)),p.excludeOS||[])}</div>
+    </div>
+  </div>`).join('')}`;
+}
+function addProfile(){
+  const name=prompt('Profile name:');
+  if(!name)return;
+  catalog.profiles.push({id:'p'+Date.now(),clientId:ctx.clientId,name,enabled:true,includeCategories:[],excludeCategories:[],includeTags:[],excludeTags:[],includeTypes:[],excludeTypes:[],includePhases:[],excludePhases:[],includeOS:[],excludeOS:[],selectedItemIds:[],excludeItemIds:[]});
+  markDirty();populateProfileDropdown();renderSettingsContent();
+}
+function updateProfile(id,field,val){
+  const p=catalog.profiles.find(p=>p.id===id);
+  if(p){p[field]=val;markDirty();}
+}
+function saveProfile(id){
+  const p=catalog.profiles.find(p=>p.id===id);
+  if(!p)return;
+  p.selectedItemIds=getMsTags('prof-items-'+id);
+  p.excludeItemIds=getMsTags('prof-exc-items-'+id);
+  p.includeCategories=getMsTags('prof-inc-cat-'+id);
+  p.excludeCategories=getMsTags('prof-exc-cat-'+id);
+  p.includeTags=getMsTags('prof-inc-tags-'+id);
+  p.excludeTags=getMsTags('prof-exc-tags-'+id);
+  p.includeTypes=getMsTags('prof-inc-types-'+id);
+  p.excludeTypes=getMsTags('prof-exc-types-'+id);
+  p.includePhases=getMsTags('prof-inc-ph-'+id);
+  p.excludePhases=getMsTags('prof-exc-ph-'+id);
+  p.includeOS=getMsTags('prof-inc-os-'+id);
+  p.excludeOS=getMsTags('prof-exc-os-'+id);
+  markDirty();refreshCurrentViews();addLog('ok',`Saved profile: ${p.name}`);
+}
+function deleteProfile(id){
+  if(!confirm('Delete profile?'))return;
+  catalog.profiles=catalog.profiles.filter(p=>p.id!==id);
+  markDirty();populateProfileDropdown();renderSettingsContent();
+}
+
+function renderListSettings(key,label){
+  return `<div class="section-hdr"><h2>${label}</h2><button onclick="addListItem('${key}','${label}')">+ Add</button></div>
+  <div class="list-editor">
+  ${(catalog[key]||[]).map((val,idx)=>`<div class="le-row">
+    <span class="sort-btns"><button onclick="moveListItem('${key}',${idx},-1)">↑</button><button onclick="moveListItem('${key}',${idx},1)">↓</button></span>
+    <input value="${esc(val)}" onchange="updateListItem('${key}',${idx},this.value)">
+    <button class="small danger" onclick="deleteListItem('${key}',${idx})">Delete</button>
+  </div>`).join('')}
+  </div>`;
+}
+
+function moveListItem(key,idx,dir){
+  const arr=catalog[key]||[]; const ni=idx+dir; if(ni<0||ni>=arr.length)return;
+  const [m]=arr.splice(idx,1); arr.splice(ni,0,m); markDirty(); renderSettingsContent(); renderItemFilters();
+}
+function addListItem(key,label){
+  const val=prompt(`New ${label} name:`);
+  if(!val)return;
+  catalog[key].push(val);
+  markDirty();renderSettingsContent();renderItemFilters();
+}
+function updateListItem(key,idx,val){
+  const old=catalog[key][idx];
+  catalog[key][idx]=val;
+  if(['categories','tags','types','phases'].includes(key)){
+    catalog.items.forEach(i=>{ if(i[key]){const ki=i[key].indexOf(old);if(ki>=0)i[key][ki]=val;} });
+    const cap=key.charAt(0).toUpperCase()+key.slice(1);
+    const singular=cap.endsWith('ies')?cap.slice(0,-3)+'y':cap.endsWith('s')?cap.slice(0,-1):cap;
+    const fields=['include'+cap,'exclude'+cap,'include'+singular,'exclude'+singular];
+    catalog.profiles.forEach(p=>fields.forEach(f=>{ if(Array.isArray(p[f])) p[f]=p[f].map(x=>x===old?val:x); }));
+  }
+  markDirty();renderItemFilters();renderOutputs();
+}
+function deleteListItem(key,idx){
+  if(!confirm('Delete this item?'))return;
+  catalog[key].splice(idx,1);
+  markDirty();renderSettingsContent();
+}
+
+function renderOSSettings(){
+  return `<div class="section-hdr"><h2>Operating Systems</h2><button onclick="addOS()">+ Add OS</button></div>
+  <table style="width:100%">
+    <thead><tr><th>Order</th><th>ID</th><th>Name</th><th>Script File</th><th>Script Type</th><th>Status</th><th></th></tr></thead>
+    <tbody>${catalog.operatingSystems.map((o,idx)=>`<tr class="${o.enabled===false?'disabled-row':''}">
+      <td><span class="sort-btns"><button onclick="moveOS(${idx},-1)">↑</button><button onclick="moveOS(${idx},1)">↓</button></span></td>
+      <td><input value="${esc(o.id)}" style="font-family:monospace;font-size:12px" onchange="updateOSId('${o.id}',this.value)"></td>
+      <td><input value="${esc(o.name)}" onchange="updateOS('${o.id}','name',this.value)"></td>
+      <td><input value="${esc(o.scriptFile)}" style="font-family:monospace;font-size:12px" onchange="updateOS('${o.id}','scriptFile',this.value)"></td>
+      <td><select onchange="updateOS('${o.id}','scriptType',this.value)">
+        <option ${o.scriptType==='powershell'?'selected':''}>powershell</option>
+        <option ${o.scriptType==='bash'?'selected':''}>bash</option>
+        <option ${o.scriptType==='cmd'?'selected':''}>cmd</option>
+      </select></td>
+      <td><label class="inline-check"><input type="checkbox" ${o.enabled!==false?'checked':''} onchange="updateOS('${o.id}','enabled',this.checked)"> Enabled</label></td>
+      <td><button class="small danger" onclick="deleteOS('${o.id}')">Delete</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function moveOS(idx,dir){
+  const ni=idx+dir; if(ni<0||ni>=catalog.operatingSystems.length)return;
+  const [m]=catalog.operatingSystems.splice(idx,1); catalog.operatingSystems.splice(ni,0,m); markDirty(); renderSettingsContent(); renderOutputs(); renderItemFilters();
+}
+function updateOSId(oldId,newId){
+  newId=String(newId||'').trim(); if(!newId||newId===oldId)return;
+  if(catalog.operatingSystems.some(o=>o.id===newId)){alert('OS ID already exists.'); renderSettingsContent(); return;}
+  const os=catalog.operatingSystems.find(o=>o.id===oldId); if(!os)return;
+  os.id=newId;
+  catalog.items.forEach(i=>{ if(i.os&&Object.prototype.hasOwnProperty.call(i.os,oldId)){ i.os[newId]=i.os[oldId]; delete i.os[oldId]; } });
+  catalog.profiles.forEach(p=>['includeOS','excludeOS'].forEach(f=>{ if(Array.isArray(p[f])) p[f]=p[f].map(x=>x===oldId?newId:x); }));
+  markDirty(); renderSettingsContent(); renderItemFilters(); renderOutputs();
+}
+function addOS(){
+  const name=prompt('OS name:');
+  if(!name)return;
+  catalog.operatingSystems.push({id:'os'+Date.now(),name,scriptFile:'install-'+name.toLowerCase().replace(/\s+/g,'-')+'.sh',scriptType:'bash'});
+  markDirty();renderSettingsContent();
+}
+function scriptExtensionForType(type){
+  if(type==='powershell')return '.ps1';
+  if(type==='cmd')return '.cmd';
+  return '.sh';
+}
+function updateOS(id,field,val){
+  const o=catalog.operatingSystems.find(o=>o.id===id);
+  if(o){
+    o[field]=val;
+    if(field==='enabled'){
+      // Disable means unavailable/hidden from active build workflows. It intentionally does not delete item commands or profile references.
+      renderOutputs(); renderItemFilters(); renderItemTable(); renderHealth();
+    }
+    if(field==='scriptType'){
+      const ext=scriptExtensionForType(val);
+      const base=(o.scriptFile||('install-'+(o.id||'os'))).replace(/\.(ps1|cmd|bat|sh)$/i,'');
+      o.scriptFile=base+ext;
+      renderSettingsContent();
+      renderOutputs();
+    }
+    markDirty(); renderItemFilters(); renderOutputs(); renderHealth();
+  }
+}
+function deleteOS(id){
+  if(!confirm('Delete OS? This also removes references from items and profiles.'))return;
+  catalog.operatingSystems=catalog.operatingSystems.filter(o=>o.id!==id);
+  catalog.items.forEach(i=>{if(i.os) delete i.os[id];});
+  catalog.profiles.forEach(p=>['includeOS','excludeOS'].forEach(f=>{ if(Array.isArray(p[f])) p[f]=p[f].filter(x=>x!==id); }));
+  markDirty();renderSettingsContent();renderItemFilters();renderOutputs();renderHealth();
+}
+
+function renderSecretsSettings(){
+  const secrets=sortedSecretsForClient(ctx.clientId);
+  return `<div class="section-hdr"><h2>Secrets (${currentClientName()})</h2><div style="display:flex;gap:8px"><button onclick="toggleAllSecrets(true)">Show All</button><button onclick="toggleAllSecrets(false)">Hide All</button><button onclick="addSecret()">+ Add Secret</button></div></div>
+  <div style="background:var(--amber);color:#000;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px">⚠ Secrets are hidden by default to reduce accidental exposure, not as cryptographic protection. Unmask only when needed to validate values and avoid screenshots while visible.</div>
+  <div class="list-editor">
+  ${secrets.map(s=>`<div class="le-row ${s.enabled===false?'disabled-row':''}" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px">
+    <div style="display:flex;align-items:center;gap:8px;width:100%">
+      <input value="${esc(s.key)}" style="font-family:monospace;font-weight:600;flex:1" onchange="updateSecret('${s.id}','key',this.value)" placeholder="SECRET_KEY">
+      <label class="inline-check"><input type="checkbox" ${s.enabled!==false?'checked':''} onchange="updateSecret('${s.id}','enabled',this.checked)"> Enabled</label>
+      <button class="small danger" onclick="deleteSecret('${s.id}')">Delete</button>
+    </div>
+    <div class="secret-value-row"><input id="secret-value-${s.id}" value="${esc(s.value||'')}" type="password" placeholder="Secret value…" onchange="updateSecret('${s.id}','value',this.value)"><button class="small" onclick="toggleSecretVisibility('${s.id}')">Show</button></div>
+    <input value="${esc(s.description||'')}" placeholder="Description" style="width:100%" onchange="updateSecret('${s.id}','description',this.value)">
+  </div>`).join('')}
+  </div>`;
+}
+
+function toggleSecretVisibility(id){
+  const input=document.getElementById('secret-value-'+id); if(!input)return;
+  input.type=input.type==='password'?'text':'password';
+  const btn=input.parentElement.querySelector('button'); if(btn)btn.textContent=input.type==='password'?'Show':'Hide';
+}
+function toggleAllSecrets(show){
+  document.querySelectorAll('[id^="secret-value-"]').forEach(input=>{input.type=show?'text':'password'; const btn=input.parentElement.querySelector('button'); if(btn)btn.textContent=show?'Hide':'Show';});
+}
+function addSecret(){
+  catalog.secrets.push({id:'s'+Date.now(),clientId:ctx.clientId,key:'NEW_SECRET',value:'',description:'',enabled:true});
+  markDirty();renderSettingsContent();
+}
+function updateSecret(id,field,val){
+  const s=catalog.secrets.find(s=>s.id===id);
+  if(s){s[field]=val;markDirty();}
+}
+function deleteSecret(id){
+  if(!confirm('Delete secret?'))return;
+  catalog.secrets=catalog.secrets.filter(s=>s.id!==id);
+  markDirty();renderSettingsContent();
+}
+
+function renderChecklistsMgrSettings(){
+  const cls=sortedChecklistsForClient(ctx.clientId);
+  return `<div class="section-hdr"><h2>Checklists (${currentClientName()})</h2><button onclick="addChecklist();settingsTab('checklists-mgr')">+ Add</button></div>
+  <div class="list-editor">
+  ${cls.map(c=>`<div class="le-row">
+    <input value="${esc(c.name)}" onchange="updateClName('${c.id}',this.value)">
+    <span style="font-size:12px;color:var(--text2)">${c.items.length} items</span>
+    <button class="small" onclick="nav('checklists')">Open</button>
+    <button class="small danger" onclick="deleteChecklist2('${c.id}')">Delete</button>
+  </div>`).join('')}
+  </div>`;
+}
+function updateClName(id,name){
+  const c=catalog.checklists.find(c=>c.id===id);
+  if(c){c.name=name;markDirty();}
+}
+function deleteChecklist2(id){
+  const cl=catalog.checklists.find(c=>c.id===id);
+  if(!cl)return; if(isProtectedChecklist(cl)){alert('Manual and Offboarding are generated/system checklists and cannot be deleted.');return;}
+  if(!confirm(`Delete "${cl.name}"?`))return;
+  catalog.checklists=catalog.checklists.filter(c=>c.id!==id);
+  markDirty();renderSettingsContent();
+}
+
+// ===== IMPORT/EXPORT =====
+function importCatalog(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(data.items||data.clients){
+          Object.assign(catalog,data);
+          storageSource.catalog='imported'; updateSaveIndicator();
+          markDirty();
+          refreshCurrentViews();
+          addLog('ok',`Imported catalog: ${file.name}`);
+        }else{alert('Invalid catalog file.');}
+      }catch(e){alert('Parse error: '+e.message);}
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function exportCatalog(){
+  const blob=new Blob([JSON.stringify(catalog,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='endpoint-forge-catalog.json';a.click();
+  URL.revokeObjectURL(url);
+  storageSource.catalog='exported/saved';updateSaveIndicator();renderDashboard();addLog('ok','Exported endpoint-forge-catalog.json');
+}
+
+function importSecrets(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(Array.isArray(data.secrets)){
+          catalog.secrets=data.secrets;
+          storageSource.secrets='imported'; updateSaveIndicator();
+          markDirty();addLog('ok',`Imported secrets: ${file.name}`);renderDashboard();
+        }
+      }catch(e){alert('Parse error: '+e.message);}
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+
+function exportSecrets(){
+  const data={schemaVersion:'6.1',secrets:catalog.secrets||[]};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='endpoint-forge-secrets.json';a.click();
+  URL.revokeObjectURL(url);
+  storageSource.secrets='exported/saved';updateSaveIndicator();renderDashboard();addLog('ok','Exported endpoint-forge-secrets.json');
+}
+
+
+function exportState(){
+  const filename=(ctx.endpoint||'endpoint')+'-build-state.json';
+  const blob=new Blob([generateBuildState()],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+  storageSource.state='exported/saved'; updateSaveIndicator();renderDashboard(); addLog('ok',`Exported ${filename}`);
+}
+
+function importState(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader(); reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        const endpoint=data.endpoint || file.name.replace(/-build-state\.json$/i,'').replace(/\.json$/i,'');
+        catalog.buildStates=catalog.buildStates||{};
+        catalog.buildStates[endpoint]=data;
+        ctx.endpoint=endpoint; document.getElementById('ctx-endpoint').value=endpoint;
+        storageSource.state='imported'; updateSaveIndicator(); markDirty(); updateCtxDisplay(); renderDashboard(); renderChecklists(); addLog('ok',`Imported build state: ${file.name}`);
+      }catch(err){alert('Parse error: '+err.message);}
+    }; reader.readAsText(file);
+  }; inp.click();
+}
+
+function exportLogs(){
+  const data={schemaVersion:'6.2',exported:new Date().toISOString(),logs};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='endpoint-forge-log.json'; a.click(); URL.revokeObjectURL(url);
+  addLog('ok','Exported endpoint-forge-log.json'); renderDashboard();
+}
+
+function importLogs(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,.log,.txt';
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader(); reader.onload=ev=>{
+      try{
+        if(file.name.toLowerCase().endsWith('.json')){
+          const data=JSON.parse(ev.target.result);
+          logs=Array.isArray(data)?data:(Array.isArray(data.logs)?data.logs:[]);
+        }else{
+          logs=String(ev.target.result).split(/\r?\n/).filter(Boolean).map(line=>({time:new Date().toISOString(),level:'info',msg:line,client:currentClientName(),endpoint:ctx.endpoint}));
+        }
+        markDirty(); addLog('ok',`Imported logs: ${file.name}`); renderDashboard();
+      }catch(err){alert('Import error: '+err.message);}
+    }; reader.readAsText(file);
+  }; inp.click();
+}
+
+function exportAll(){
+  downloadZip();
+}
+
+function exportSanitized(){
+  const sanitized=JSON.parse(JSON.stringify(catalog));
+  sanitized.secrets=(sanitized.secrets||[]).map(s=>({...s,value:'PLACEHOLDER'}));
+  sanitized.buildStates={};
+  const blob=new Blob([JSON.stringify(sanitized,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='endpoint-forge-sanitized-catalog.json'; a.click(); URL.revokeObjectURL(url);
+  addLog('ok','Exported sanitized catalog');
+}
+
+
+function clearLocalCache(){
+  const msg='This clears Endpoint Forge browser recovery/cache data for this browser profile. Export/save the Catalog, Secrets, Endpoint State, and Logs to JSON first or unsaved changes may be lost. Continue?';
+  if(!confirm(msg))return;
+  localStorage.removeItem('endpoint-forge');
+  localStorage.removeItem('endpoint-forge-ctx');
+  localStorage.removeItem('endpoint-forge-logs');
+  storageSource={catalog:'demo',secrets:'demo',state:'demo'};
+  updateSaveIndicator();renderDashboard();addLog('warn','Local browser cache cleared');
+}
+function showPageContext(){
+  let text='';
+  if(currentPage==='settings'){
+    const details={
+      clients:'Settings > Clients is catalog data. Clients are source-of-truth containers for profiles, secrets, and checklists. Disabled clients are hidden from the global selector but remain in the catalog.',
+      profiles:'Settings > Profiles is client-scoped catalog data. Profiles select included and excluded items by item, category, tag, type, phase, and operating system. Exclusions override inclusions.',
+      categories:'Settings > Categories is client/catalog taxonomy used by items and profiles. Renaming a category updates item/profile references.',
+      tags:'Settings > Tags is catalog taxonomy used for flexible filtering and profile rules. Renaming a tag updates item/profile references.',
+      types:'Settings > Types is catalog taxonomy used to classify Endpoint Forge artifacts such as applications, scriptlets, fixes, policies, and manual procedures.',
+      phases:'Settings > Phases controls workflow ordering such as precheck, install, configure, verify, rollback, and offboarding.',
+      'operating-systems':'Settings > Operating Systems controls script generation. OS IDs are referenced by items and profiles; changing an ID updates those references.',
+      secrets:'Settings > Secrets is client-specific sensitive data. Catalog items reference secret names; actual values should live in the secrets JSON, not in shared catalog exports.',
+      'checklists-mgr':'Settings > Checklists manages client-specific checklist definitions. Endpoint completion state belongs to build-state/recovery cache, not the catalog template.'
+    };
+    text=details[settingsSection]||'Settings defines source-of-truth configuration used throughout Endpoint Forge.';
+  }else{
+    text={
+      dashboard:'Dashboard is influenced by all project files, global Client/Profile/Endpoint/Date, browser recovery cache, and current in-memory state.',
+      items:'Items are catalog source-of-truth Endpoint Forge artifacts. Filters are local UI state. Profiles and Generated Outputs consume these items.',
+      checklists:'Checklists are client-specific templates. Completion state is endpoint-specific and stored in build state/recovery cache.',
+      outputs:'Generated Outputs are derived from Client, Profile, Endpoint, Build Date, Catalog items, Checklists, Secrets, and Build State.'
+    }[currentPage]||'This page is affected by global context and catalog data.';
+  }
+  showModal('Page Context',`<p style="line-height:1.5;color:var(--text2)">${esc(text)}</p>`,'OK',()=>{});
+}
+function showChangeLog(){
+  showModal('Endpoint Forge Change Log',`<div style="max-height:420px;overflow:auto;line-height:1.5;color:var(--text2)">
+    <h3>v6.6</h3><ul><li>Stability recovery release: restored item saving, checklists, build-state export, and valid ZIP generation.</li><li>Expanded change log history back to the first Build Catalog version.</li></ul>
+    <h3>v6.7</h3><ul><li>Added MCAD stabilization pass across clients, profiles, items, checklists, secrets, taxonomy, and operating systems.</li><li>Restored generated Manual and Offboarding checklist synchronization from profile items.</li><li>Added checklist indent/outdent controls and parent/child checkbox propagation.</li><li>Added browser history navigation support for back/forward mouse buttons.</li><li>Fixed global context refresh propagation and alphabetized profile pickers.</li></ul><h3>v6.6</h3><ul><li>Dashboard summary cards open their respective work areas.</li><li>Checklist management consolidated into the Checklists tab with rename and enable/disable controls.</li><li>Generated/system checklists now describe their source.</li><li>Missing OS validation can remove stale item mappings directly.</li><li>Disabling/deleting an OS can clean item/profile references.</li></ul><h3>v6.5 / v6.5.1</h3><ul><li>Added secret show/hide controls with security note.</li><li>Improved Project Health missing-secret fix workflow.</li><li>Added disabled clients/profiles.</li><li>Added OS ordering and OS ID reference updates.</li><li>Improved Settings page help by subtab.</li></ul>
+    <h3>v6.4</h3><ul><li>Added cache clear warning/action.</li><li>Added profile include/exclude individual item selectors using item names.</li><li>Added clickable validation fixes.</li><li>Added Endpoint Forge multiselect filter dropdowns.</li><li>Added page-context help.</li></ul>
+    <h3>v6.3</h3><ul><li>Added richer save-state indicator.</li><li>Added multi-filter support.</li><li>Added profile include rules for items, tags, types, phases, and OS.</li></ul>
+    <h3>v6.2</h3><ul><li>Improved dashboard import/export workflows.</li><li>Added endpoint state and log import/export.</li><li>Fixed ZIP exports into discrete files.</li><li>Added checklist editing and protected generated Manual/Offboarding checklists.</li></ul>
+    <h3>v6.1</h3><ul><li>Restored nested checklist support.</li><li>Improved output generation for all OS scripts.</li><li>Clarified embedded demo data vs imported JSON files.</li></ul>
+    <h3>v6.0</h3><ul><li>Renamed project to Endpoint Forge.</li><li>Reset UI baseline around compact header, left nav, cards, and endpoint artifact concept.</li><li>Expanded scope from build catalog to portable endpoint runbook/scriptlet repository.</li></ul>
+    <h3>v5.8.x</h3><ul><li>Introduced Endpoint Forge-like workflows: dashboard, generated outputs, settings subtabs, global client/profile context, endpoint state, fixed scrolling, and output selection.</li></ul>
+    <h3>v5.x</h3><ul><li>Added client/profile support, secrets separation, generated output ZIPs, checklists, item editor, MCAD operations, sortable/filterable lists, and external JSON workflow.</li></ul>
+    <h3>v4.x</h3><ul><li>Added MCAD support for core entities, profile/client deletion, settings reorganization, sortable headers/lists, and endpoint-centric checklist state.</li></ul>
+    <h3>v3.x</h3><ul><li>Added advanced filtering, build-session state, logging metadata, client/profile separation, and external secrets handling.</li></ul>
+    <h3>v2.x</h3><ul><li>Added item add/edit/remove, ordering, separate checklists, nested checklist support, and secrets template.</li></ul>
+    <h3>v1.x</h3><ul><li>Initial standalone HTML + external JSON build catalog prototype with OS-specific script/checklist exports.</li></ul>
+  </div>`,'Close',()=>{});
+}
+
+// ===== MODAL =====
+let modalCallback=null;
+function showModal(title,bodyHtml,okLabel,cb){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=bodyHtml;
+  document.getElementById('modal-ok').textContent=okLabel||'OK';
+  document.getElementById('modal-bg').classList.remove('hidden');
+  modalCallback=cb;
+}
+function closeModal(){document.getElementById('modal-bg').classList.add('hidden');modalCallback=null;}
+function modalOk(){if(modalCallback)modalCallback();closeModal();}
+
+// ===== UTILS =====
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== START =====
+init();
+</script>
+</body>
+</html>
